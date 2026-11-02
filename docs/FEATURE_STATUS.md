@@ -7,9 +7,10 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Funzionalità | Componente | Stato | Note |
 | --- | --- | --- | --- |
 | Repository, struttura, documenti di registro | tutti | IN_SVILUPPO | |
-| Database e migrazioni Flyway | hub, edge | SPECIFICATA | Postgres 17 locale pronto |
+| Database e migrazioni Flyway | hub | TESTATA_CON_SERVIZIO_REALE | Postgres 17 reale (Testcontainers e locale). Edge: SPECIFICATA |
 | Contratti Hub↔Edge (comandi firmati Ed25519) | contracts | IMPLEMENTATA | Testata con dati simulati (8 test unitari) |
-| Autenticazione, TOTP, ruoli e permessi | hub | SPECIFICATA | |
+| Autenticazione (login, refresh con rotazione, logout), ruoli e permessi, gestione utenti, audit | hub | TESTATA_CON_SERVIZIO_REALE | 22 test con Postgres reale. **TOTP non implementato (D-10)** |
+| TOTP | hub | BLOCCATA_DA_DIPENDENZA | Sospeso su richiesta del committente (D-10); obbligatorio prima dell'esposizione su Internet |
 | Canale Hub↔Edge (WebSocket in uscita) | hub, edge | SPECIFICATA | |
 | Job engine e scheduler | edge | SPECIFICATA | |
 | AI gateway (Ollama, FreeLLMAPI) | edge | SPECIFICATA | |
