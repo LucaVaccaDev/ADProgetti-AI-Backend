@@ -236,6 +236,13 @@ class AuthAndUsersTest extends IntegrationTestBase {
     }
 
     @Test
+    void systemStatusNeedsPermissionAndReportsEdgeNotConnected() throws Exception {
+        mvc.perform(get("/api/system/status")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/system/status").header("Authorization", bearer(accessToken("mario"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.edgeConnected").value(false));
+    }
+
+    @Test
     void validationErrorsExposeNoInternals() throws Exception {
         MvcResult result = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{}")).andExpect(status().isBadRequest()).andReturn();

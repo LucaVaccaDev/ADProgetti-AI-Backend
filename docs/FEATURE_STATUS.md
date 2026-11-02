@@ -15,5 +15,6 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Job engine e scheduler | edge | SPECIFICATA | |
 | AI gateway (Ollama, FreeLLMAPI) | edge | SPECIFICATA | |
 | Servizio percorsi NAS | edge | SPECIFICATA | |
-| Web: login, dashboard, PWA | fe | SPECIFICATA | |
+| Web: login, sessione, dashboard, gestione utenti, PWA | fe | TESTATA_CON_DATI_SIMULATI | 11 test Vitest con HTTP simulato; non ancora verificato in un browser |
+| Stato sistema (`/api/system/status`) | hub | IMPLEMENTATA | Edge sempre "non collegato" finché non esiste il canale |
 | Script di installazione, avvio, arresto | infra, scripts | SPECIFICATA | |
