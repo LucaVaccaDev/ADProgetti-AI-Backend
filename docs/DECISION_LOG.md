@@ -10,3 +10,4 @@ Le deviazioni D-01…D-08 sono nel `CLAUDE.md`.
 | T-02 | 2026-11-02 | Node 24 LTS e Maven 3.9 installati in `~/tools`, caricati con `source scripts/env.sh`. | Node 25 (di sistema) è una versione dispari, non LTS. |
 | T-03 | 2026-11-02 | PostgreSQL 17 + pgvector installati con Homebrew nativo (`/opt/homebrew`) per lo sviluppo. Database `zio_hub` e `zio_edge` con utenti separati. I test useranno comunque Testcontainers (richiede un runtime di container, es. Colima). | Docker non installato. Il `brew` in `/usr/local` è la versione Intel e non funziona su questo Mac Apple Silicon. |
 | T-04 | 2026-11-02 | `docs/materiali/` escluso da git. | Può contenere dati reali dello studio (CLAUDE.md §10, sez. 39). |
+| T-05 | 2026-11-02 | Colima + Docker CLI (Homebrew nativo) come runtime di container per Testcontainers; variabili in `scripts/env.sh`. | Docker Desktop non necessario; gratuito e leggero. |

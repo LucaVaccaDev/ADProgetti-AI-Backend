@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/hub-command.v1.json",
+  "title": "HubCommand v1",
+  "type": "object",
+  "required": ["schemaVersion", "id", "type", "requestedBy", "permissions", "issuedAtEpochMs", "expiresAtEpochMs", "nonce", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "requestedBy": { "type": "string", "minLength": 1 },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "issuedAtEpochMs": { "type": "integer" },
+    "expiresAtEpochMs": { "type": "integer" },
+    "nonce": { "type": "string", "minLength": 16 },
+    "payload": { "type": "string", "description": "JSON text" }
+  },
+  "additionalProperties": false
+}

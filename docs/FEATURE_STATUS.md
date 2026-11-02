@@ -8,7 +8,7 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | --- | --- | --- | --- |
 | Repository, struttura, documenti di registro | tutti | IN_SVILUPPO | |
 | Database e migrazioni Flyway | hub, edge | SPECIFICATA | Postgres 17 locale pronto |
-| Contratti Hub↔Edge (comandi firmati) | contracts | SPECIFICATA | |
+| Contratti Hub↔Edge (comandi firmati Ed25519) | contracts | IMPLEMENTATA | Testata con dati simulati (8 test unitari) |
 | Autenticazione, TOTP, ruoli e permessi | hub | SPECIFICATA | |
 | Canale Hub↔Edge (WebSocket in uscita) | hub, edge | SPECIFICATA | |
 | Job engine e scheduler | edge | SPECIFICATA | |
