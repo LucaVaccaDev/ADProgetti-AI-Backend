@@ -15,6 +15,8 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Job engine e scheduler | edge | SPECIFICATA | |
 | AI gateway (Ollama, FreeLLMAPI) | edge | SPECIFICATA | |
 | Servizio percorsi NAS | edge | SPECIFICATA | |
-| Web: login, sessione, dashboard, gestione utenti, PWA | fe | TESTATA_CON_DATI_SIMULATI | 11 test Vitest con HTTP simulato; non ancora verificato in un browser |
+| Web: login, sessione, gestione utenti, PWA | fe | TESTATA_CON_DATI_SIMULATI | Test Vitest con HTTP simulato; non ancora verificato in un browser |
+| Web: grafica Bento, menu laterale, intestazioni, Panoramica (struttura, calendario mensile) | fe | TESTATA_CON_DATI_SIMULATI | 18 test Vitest in totale. Riquadri senza dati dal Hub; non ancora verificata a vista in un browser |
+| Web: Segreteria, Gare, BIM, Foto, Ricerca e chat, Calendario, Commesse, Amministrazione (pagine) | fe | IN_SVILUPPO | Solo struttura e stati vuoti; contenuti dei capitoli 4–11 di MENU_E_PAGINE da realizzare uno per volta |
 | Stato sistema (`/api/system/status`) | hub | IMPLEMENTATA | Edge sempre "non collegato" finché non esiste il canale |
 | Script di installazione, avvio, arresto | infra, scripts | SPECIFICATA | |
