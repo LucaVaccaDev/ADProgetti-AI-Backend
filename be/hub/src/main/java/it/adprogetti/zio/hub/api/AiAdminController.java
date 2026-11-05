@@ -71,6 +71,15 @@ class AiAdminController {
                 .orElse(new ModelsResponse(false, null, null));
     }
 
+    /** AI usage metadata reported by the Edge (counts, latency, tokens); never contents. */
+    @GetMapping("/usage")
+    @PreAuthorize("hasAuthority('AI_USAGE_READ')")
+    ModelsResponse usage() {
+        return projections.find("ai.usage", "all")
+                .map(p -> new ModelsResponse(true, p.updatedAt(), MAPPER.readTree(p.data())))
+                .orElse(new ModelsResponse(false, null, null));
+    }
+
     @PostMapping("/models/refresh")
     @PreAuthorize("hasAuthority('SETTINGS_MANAGE')")
     ResponseEntity<CommandAccepted> refresh(Authentication auth, @AuthenticationPrincipal Jwt jwt,

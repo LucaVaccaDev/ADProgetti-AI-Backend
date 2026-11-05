@@ -336,6 +336,19 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void usageMetadataIsReadableOnlyWithThePermission() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "u-1", "ai.usage", "all", 1,
+                "{\"rows\":[{\"day\":\"2026-11-05\",\"function\":\"CLASSIFICATION\",\"model\":\"qwen3:8b\","
+                        + "\"outcome\":\"OK\",\"count\":3,\"totalLatencyMs\":900,\"promptTokens\":10,\"completionTokens\":5}]}"));
+        Thread.sleep(800);
+        mvc.perform(get("/api/ai/usage").header("Authorization", bearer("admin")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.data.rows[0].count").value(3));
+        mvc.perform(get("/api/ai/usage").header("Authorization", bearer("mario"))).andExpect(status().isForbidden());
+    }
+
+    @Test
     void projectionsOutsideTheWhitelistAreDropped() throws Exception {
         edge = FakeEdge.connect(port, rotateCredential());
         edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "k-x", "email.body", "1", 1,

@@ -16,13 +16,13 @@ Aggiornato il 05/11/2026. Specifica: CLAUDE.md §5. Implementazione lato Hub: `b
 | Hub→Edge | COMMAND | `SignedCommand` firmato Ed25519, con id, utente, permessi, scadenza (5 min) e nonce |
 | Edge→Hub | ACK | comando ricevuto e salvato |
 | Edge→Hub | RESULT | SUCCEEDED / FAILED / REJECTED; un risultato ripetuto è ignorato |
-| Edge→Hub | PROJECTION | proiezione in sola lettura; solo nomi in lista bianca (`system.status`, `ai.models`), JSON valido, max 64 KB, versione crescente, chiave di idempotenza |
+| Edge→Hub | PROJECTION | proiezione in sola lettura; solo nomi in lista bianca (`system.status`, `ai.models`, `ai.usage`), JSON valido, max 64 KB, versione crescente, chiave di idempotenza |
 
 ## Consegna almeno-una-volta
 Comando → tabella `command_outbox` (PENDING) → inviato (SENT) → ACKED → esito. Ogni 15 s i comandi SENT non confermati da più di 30 s vengono rinviati; quelli scaduti senza consegna diventano EXPIRED. L'Edge deve usare nonce e id per non rieseguire un comando ripetuto.
 
 ## Comandi della Release 1
-`system.ping`, `ai.models.list` (SYSTEM_READ), `ai.model.test`, `ai.model.assign` (SETTINGS_MANAGE). Il permesso è controllato dall'Hub **e** di nuovo dall'Edge.
+`system.ping`, `ai.models.list` (SYSTEM_READ), `ai.model.test`, `ai.model.assign` (SETTINGS_MANAGE); i risultati sono in `docs/AI_LOCALE.md`. Il permesso è controllato dall'Hub **e** di nuovo dall'Edge.
 
 ## Accoppiamento
 1. Un amministratore con `INTEGRATIONS_MANAGE` chiama `POST /api/integrations/edge/credential`: la credenziale compare **una sola volta**.
@@ -36,7 +36,7 @@ Comando → tabella `command_outbox` (PENDING) → inviato (SENT) → ACKED → 
 - **Rete:** l'Edge ascolta solo su `127.0.0.1:8081` (solo `/actuator/health`; tutto il resto è negato). Non accetta connessioni dalla rete: lavora solo tramite il canale in uscita.
 - **Connessione:** `HubConnection` si collega con backoff esponenziale (1 s → 60 s, ±20 % di jitter) e riparte da solo. `wss://` obbligatorio; `ws://` solo con `EDGE_HUB_ALLOW_INSECURE=true` (prove locali). Con `EDGE_HUB_CA_FILE` si considera fidata solo quella CA (pinning). Senza URL, credenziale o chiave pubblica lo stato è NOT_CONFIGURED (nuovo tentativo ogni 30 s, nessun arresto).
 - **Segreti:** nel portachiavi macOS, servizio `it.adprogetti.zio.edge`: `hub-edge-key` e `hub-command-public-key`. Si inseriscono con `scripts/edge-set-secret.sh <nome>` (valore digitato a prompt nascosto). Vengono riletti a ogni tentativo di connessione: una rotazione non richiede il riavvio.
-- **Comando in arrivo:** inbox (id univoco) → verifica firma Ed25519, scadenza e nonce **nella stessa transazione** (nonce persistenti) → ACK → policy propria dell'Edge (tipo noto e permesso presente) → validazione del payload → esecuzione sequenziale → risultato. Un id già visto non viene rieseguito: si rinvia il risultato salvato. Al Hub arrivano solo codici brevi (`BAD_SIGNATURE`, `EXPIRED`, `REPLAYED`, `POLICY`, `UNKNOWN_TYPE`, `INVALID_PAYLOAD`, `UNSUPPORTED`, `EXECUTION_ERROR`, `INTERRUPTED`), mai testi d'errore.
+- **Comando in arrivo:** inbox (id univoco) → verifica firma Ed25519, scadenza e nonce **nella stessa transazione** (nonce persistenti) → ACK → policy propria dell'Edge (tipo noto e permesso presente) → validazione del payload → esecuzione (pool di 3 thread: un comando lento non blocca gli altri) → risultato. Un id già visto non viene rieseguito: si rinvia il risultato salvato. Al Hub arrivano solo codici brevi (`BAD_SIGNATURE`, `EXPIRED`, `REPLAYED`, `POLICY`, `UNKNOWN_TYPE`, `INVALID_PAYLOAD`, `UNSUPPORTED`, `EXECUTION_ERROR`, `INTERRUPTED`), mai testi d'errore.
 - **Riavvio durante un comando:** un comando ricevuto ma non finito non viene rieseguito (potrebbe avere avuto effetti): si chiude come FAILED/INTERRUPTED e l'Hub viene avvisato.
 - **Outbox:** ACK, risultati e proiezioni sono salvati prima di essere inviati. L'Hub non conferma i risultati, quindi a ogni riconnessione si rinviano anche i messaggi inviati negli ultimi 5 minuti (l'Hub ignora i duplicati). Conservazione 24 ore.
 - **Heartbeat:** ogni 30 s con lo stato reale di database e Ollama (`UP/DOWN/NOT_CONFIGURED`), anche subito dopo il HELLO.

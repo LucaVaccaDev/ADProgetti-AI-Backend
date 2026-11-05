@@ -21,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ProjectionService {
 
     /** Projections allowed in Release 1. New ones are added here together with their review. */
-    static final Set<String> ALLOWED = Set.of("system.status", "ai.models");
+    static final Set<String> ALLOWED = Set.of("system.status", "ai.models", "ai.usage");
     static final int MAX_DATA_CHARS = 65_536;
     private static final Pattern ENTITY = Pattern.compile("[A-Za-z0-9._:-]{1,100}");
     private static final JsonMapper MAPPER = JsonMapper.builder().build();

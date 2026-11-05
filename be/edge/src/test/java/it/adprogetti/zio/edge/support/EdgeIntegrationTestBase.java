@@ -34,8 +34,7 @@ import org.testcontainers.utility.DockerImageName;
         "edge.hub.reconnect-initial=100ms",
         "edge.hub.reconnect-max=400ms",
         "edge.heartbeat-interval=500ms",
-        "edge.secrets.store=test",
-        "edge.ai.ollama-url=" })
+        "edge.secrets.store=test" })
 @Import(EdgeIntegrationTestBase.HubConfig.class)
 public abstract class EdgeIntegrationTestBase {
 
@@ -45,8 +44,15 @@ public abstract class EdgeIntegrationTestBase {
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
             DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
 
+    protected static final StubOllama OLLAMA;
+
     static {
         POSTGRES.start();
+        try {
+            OLLAMA = new StubOllama();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Autowired protected FakeHub hub;
@@ -57,6 +63,7 @@ public abstract class EdgeIntegrationTestBase {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("server.port", () -> PORT);
+        registry.add("edge.ai.ollama-url", OLLAMA::url);
         registry.add("edge.hub.url", () -> "ws://localhost:" + PORT + "/edge/ws");
     }
 

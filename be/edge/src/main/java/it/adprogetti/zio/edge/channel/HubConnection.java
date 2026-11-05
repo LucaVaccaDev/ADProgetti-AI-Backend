@@ -25,6 +25,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -55,6 +56,7 @@ public class HubConnection implements SmartLifecycle {
     private final HeartbeatService heartbeat;
     private final EdgeAudit audit;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     private volatile boolean running;
     private volatile ConnectionState state = ConnectionState.NOT_CONFIGURED;
@@ -63,7 +65,7 @@ public class HubConnection implements SmartLifecycle {
     private volatile HubLink currentLink;
 
     HubConnection(EdgeProperties props, HubTrust trust, OutboxService outbox, CommandDispatcher dispatcher,
-            HeartbeatService heartbeat, EdgeAudit audit, Clock clock) {
+            HeartbeatService heartbeat, EdgeAudit audit, Clock clock, ApplicationEventPublisher events) {
         this.props = props;
         this.trust = trust;
         this.outbox = outbox;
@@ -71,6 +73,7 @@ public class HubConnection implements SmartLifecycle {
         this.heartbeat = heartbeat;
         this.audit = audit;
         this.clock = clock;
+        this.events = events;
     }
 
     HubLink currentLink() {
@@ -209,6 +212,7 @@ public class HubConnection implements SmartLifecycle {
             heartbeat.sendNow();
             outbox.flush(true);
             audit.record("HUB_CONNECTED", null, EdgeAudit.SUCCESS, null);
+            events.publishEvent(new HubConnectedEvent());
         }
 
         @Override

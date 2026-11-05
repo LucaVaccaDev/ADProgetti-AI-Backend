@@ -14,7 +14,9 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Canale Hub↔Edge — lato Hub (WebSocket, credenziale Edge, comandi firmati, outbox/inbox, proiezioni) | hub | TESTATA_CON_SERVIZIO_REALE | Postgres reale e client WebSocket reale (finto Edge in test); 22 test; prova con l'Edge vero il 05/11 |
 | Canale Hub↔Edge — lato Edge (client in uscita, verifica comandi, policy, inbox/outbox, heartbeat, portachiavi) | edge | TESTATA_CON_SERVIZIO_REALE | 23 test con Postgres+pgvector e finto Hub; prova con l'Hub vero il 05/11. Comandi `ai.*` ancora senza esecutore (rifiutati UNSUPPORTED) |
 | Job engine e scheduler | edge | SPECIFICATA | |
-| AI gateway (Ollama, FreeLLMAPI) | edge | SPECIFICATA | |
+| AI gateway locale (Ollama): coda a due corsie, output validato, registro d'uso, comandi `ai.models.list`/`ai.model.test`/`ai.model.assign`, proiezioni `ai.models` e `ai.usage` | edge, hub | TESTATA_CON_SERVIZIO_REALE | Test con finto Ollama + test `real-ai` con Ollama, Qwen3 8B e bge-m3 reali (05/11). Modelli grandi: scaricamento in corso, nessun modello assegnato per ANALYSIS/DRAFTING/IMAGES |
+| AI gateway: provider FreeLLMAPI (ricerca generale, ritocco) | edge | BLOCCATA_DA_DIPENDENZA | Da installare con le chiavi dei provider (compito dell'amministratore); interfaccia `AiGateway` pronta ad accoglierlo |
+| Benchmark modelli AI | scripts | TESTATA_CON_DATI_SIMULATI | Dati sintetici; da ripetere sul campione reale anonimizzato |
 | Servizio percorsi NAS | edge | SPECIFICATA | |
 | Web: login, sessione, gestione utenti, PWA | fe | TESTATA_CON_DATI_SIMULATI | Test Vitest con HTTP simulato; non ancora verificato in un browser |
 | Web: grafica Bento, menu laterale, intestazioni, Panoramica (struttura, calendario mensile) | fe | TESTATA_CON_DATI_SIMULATI | 18 test Vitest in totale. Riquadri senza dati dal Hub; non ancora verificata a vista in un browser |

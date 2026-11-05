@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * Hub commands from arrival to result: intake (signature, nonce, inbox), acknowledgement, the Edge's own
- * policy, payload validation, execution and the answer. Commands run one at a time, in order.
+ * policy, payload validation, execution and the answer. A small pool runs commands, so a slow one does not block the rest.
  * Error details are never sent to the Hub: only short codes.
  */
 @Service
@@ -43,7 +43,8 @@ public class CommandDispatcher {
     private final Clock clock;
     private final JdbcClient jdbc;
     private final Map<CommandType, CommandHandler> handlers = new EnumMap<>(CommandType.class);
-    private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
+    // A few workers: a slow AI command (loading a large model) must not hold up the others.
+    private final ExecutorService worker = Executors.newFixedThreadPool(3, r -> {
         Thread t = new Thread(r, "edge-commands");
         t.setDaemon(true);
         return t;
@@ -102,6 +103,9 @@ public class CommandDispatcher {
             return new CommandResult(ContractVersion.CURRENT, command.id(), CommandResult.Status.SUCCEEDED, json, null);
         } catch (InvalidPayloadException e) {
             return CommandIntake.rejected(command.id(), "INVALID_PAYLOAD");
+        } catch (CommandFailure e) {
+            return new CommandResult(ContractVersion.CURRENT, command.id(), CommandResult.Status.FAILED, null,
+                    e.code());
         } catch (Exception e) {
             log.error("Command {} failed", command.id(), e);
             return new CommandResult(ContractVersion.CURRENT, command.id(), CommandResult.Status.FAILED, null,

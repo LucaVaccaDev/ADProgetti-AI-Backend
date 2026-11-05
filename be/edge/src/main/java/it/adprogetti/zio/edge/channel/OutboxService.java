@@ -48,7 +48,7 @@ public class OutboxService {
         link.compareAndSet(oldLink, null);
     }
 
-    boolean connected() {
+    public boolean isConnected() {
         return link.get() != null;
     }
 

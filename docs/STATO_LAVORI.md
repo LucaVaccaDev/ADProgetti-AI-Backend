@@ -13,7 +13,7 @@ Aggiornato il 05/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUD
 
 **Fatto il 05/11:** capitolato v1.1 recepito; contratti; canale Hub↔Edge (lato Hub e lato Edge) provato con Hub ed Edge veri; Ollama installato con Qwen3 8B e bge-m3 sull'SSD. Dettagli in `docs/ARCHITETTURA_CANALE.md`.
 
-**Prossimo passo (passo 4):** AI gateway e comandi `ai.*` sull'Edge (provider Ollama, coda, schemi, registro d'uso, benchmark, modelli grandi dopo il benchmark).
+**Fatto anche (passo 4):** AI gateway locale, comandi `ai.*`, registro d'uso, benchmark (`docs/AI_LOCALE.md`). **Da fare:** terminato il download di `gpt-oss:20b`, `gemma4:26b-a4b-it-q4_K_M` e `qwen3.6:27b-q4_K_M` (SSD), lanciare `python3 -I scripts/benchmark-ai.py <modelli> --out docs/benchmark`, scegliere il modello principale e assegnarlo. Poi: job engine e scheduler, servizio NAS, collegare i dati reali al web (stato sistema e modelli AI nella pagina Amministrazione).
 
 **Piano originario (superato):** creare il modulo **Edge** (`apps/edge`, sul Mac Mini, utenza dedicata) e il **canale Hub↔Edge** (WebSocket in uscita, comandi firmati, outbox/inbox). Il piano (moduli, file, migrazioni, endpoint, test) va mostrato e confermato prima di scrivere codice (CLAUDE.md §6).
 

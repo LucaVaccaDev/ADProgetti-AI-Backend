@@ -13,7 +13,6 @@ import it.adprogetti.zio.contracts.message.CommandResult;
 import it.adprogetti.zio.contracts.message.EdgeHeartbeat;
 import it.adprogetti.zio.contracts.message.ProjectionUpdate;
 import it.adprogetti.zio.contracts.message.ServiceStatus;
-import it.adprogetti.zio.contracts.payload.AiModelsListPayload;
 import it.adprogetti.zio.contracts.payload.Payloads;
 import it.adprogetti.zio.contracts.payload.SystemPingPayload;
 import it.adprogetti.zio.contracts.payload.SystemPingResult;
@@ -92,7 +91,7 @@ class EdgeChannelIntegrationTest extends EdgeIntegrationTestBase {
         });
         assertThat(heartbeat.services()).anySatisfy(s -> {
             assertThat(s.name()).isEqualTo("ollama");
-            assertThat(s.state()).isEqualTo(ServiceStatus.State.NOT_CONFIGURED); // URL blank in tests
+            assertThat(s.state()).isEqualTo(ServiceStatus.State.UP); // the stub Ollama answers
         });
     }
 
@@ -231,17 +230,13 @@ class EdgeChannelIntegrationTest extends EdgeIntegrationTestBase {
     }
 
     @Test
-    void invalidPayloadsAndCommandsWithoutAHandlerAreRejectedNotExecuted() throws Exception {
+    void invalidPayloadsAreRejectedNotExecuted() throws Exception {
         HubCommand badPayload = new HubCommand(ContractVersion.CURRENT, UUID.randomUUID().toString(), "system.ping",
                 "user-1", List.of("SYSTEM_READ"), System.currentTimeMillis(),
                 Instant.now().plusSeconds(60).toEpochMilli(), nonce(), "{\"label\":\"" + "x".repeat(200) + "\"}");
         hub.send(hub.sign(badPayload));
         assertThat(resultOf(badPayload.id()).errorCode()).isEqualTo("INVALID_PAYLOAD");
 
-        HubCommand noHandler = command("ai.models.list", new AiModelsListPayload(), List.of("SYSTEM_READ"), nonce(),
-                Instant.now().plusSeconds(60));
-        hub.send(hub.sign(noHandler)); // AI handlers arrive with the AI gateway: honest "unsupported"
-        assertThat(resultOf(noHandler.id()).errorCode()).isEqualTo("UNSUPPORTED");
     }
 
     @Test

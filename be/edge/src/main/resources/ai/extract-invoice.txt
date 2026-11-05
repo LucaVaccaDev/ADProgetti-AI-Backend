@@ -1,0 +1,1 @@
+Estrai il numero del documento e l'importo totale in euro (numero con il punto decimale, senza simboli). Rispondi solo con il JSON richiesto.
