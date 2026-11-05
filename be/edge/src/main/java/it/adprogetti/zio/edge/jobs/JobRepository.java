@@ -162,6 +162,21 @@ class JobRepository {
                 .query(JobRepository::map).list();
     }
 
+    record Counts(int queued, int running, int succeeded, int failed) {
+    }
+
+    Counts counts(Instant since) {
+        return jdbc.sql("""
+                select count(*) filter (where status = 'QUEUED') as queued,
+                       count(*) filter (where status = 'RUNNING') as running,
+                       count(*) filter (where status = 'SUCCEEDED' and finished_at >= :since) as succeeded,
+                       count(*) filter (where status = 'FAILED' and finished_at >= :since) as failed
+                from job
+                """).param("since", Timestamp.from(since))
+                .query((rs, n) -> new Counts(rs.getInt("queued"), rs.getInt("running"), rs.getInt("succeeded"),
+                        rs.getInt("failed"))).single();
+    }
+
     int deleteFinishedBefore(Instant cutoff) {
         return jdbc.sql("delete from job where finished_at is not null and finished_at < :c")
                 .param("c", Timestamp.from(cutoff)).update();

@@ -427,4 +427,53 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         String id = issueRefresh("admin");
         assertThat(expectCommand(edge).command().id()).isEqualTo(id);
     }
+
+    // --- jobs -------------------------------------------------------------------------------------
+
+    @Test
+    void jobsAreNotAvailableUntilTheEdgeReportsThemAndTheProjectionIsWhitelisted() throws Exception {
+        mvc.perform(get("/api/jobs").header("Authorization", bearer("mario")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "j-1", "jobs.summary", "all", 1,
+                "{\"counts\":{\"queued\":1,\"running\":0,\"succeededLast24h\":4,\"failedLast24h\":0},"
+                        + "\"recent\":[],\"schedules\":[]}"));
+        Thread.sleep(800);
+        mvc.perform(get("/api/jobs").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.data.counts.succeededLast24h").value(4));
+    }
+
+    @Test
+    void runningAndCancellingJobsNeedThePermissionAndValidInput() throws Exception {
+        mvc.perform(post("/api/jobs/run").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"SYSTEM_SELFCHECK\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/jobs/" + UUID.randomUUID() + "/cancel").header("Authorization", bearer("mario")))
+                .andExpect(status().isForbidden());
+        for (String body : List.of("{\"type\":\"lower\"}", "{\"type\":\"../../x\"}", "{\"type\":\"\"}", "{}")) {
+            mvc.perform(post("/api/jobs/run").header("Authorization", bearer("admin"))
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        }
+        mvc.perform(post("/api/jobs/not-a-uuid/cancel").header("Authorization", bearer("admin")))
+                .andExpect(status().isBadRequest());
+        assertThat(jdbc.queryForObject("select count(*) from command_outbox", Integer.class)).isZero();
+    }
+
+    @Test
+    void startingAJobIssuesASignedCommandWithTheSettingsPermission() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        MvcResult result = mvc.perform(post("/api/jobs/run").header("Authorization", bearer("admin"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"SYSTEM_SELFCHECK\"}"))
+                .andExpect(status().isAccepted()).andReturn();
+        String id = json.readTree(result.getResponse().getContentAsString()).get("commandId").asString();
+        SignedCommand signed = expectCommand(edge);
+        assertThat(signed.command().id()).isEqualTo(id);
+        assertThat(signed.command().type()).isEqualTo("jobs.run");
+        assertThat(signed.command().permissions()).contains("SETTINGS_MANAGE");
+        assertThat(signed.command().payload()).contains("SYSTEM_SELFCHECK");
+        CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
+        assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
+    }
 }

@@ -11,7 +11,9 @@ public enum CommandType {
     SYSTEM_PING("system.ping", "SYSTEM_READ"),
     AI_MODELS_LIST("ai.models.list", "SYSTEM_READ"),
     AI_MODEL_TEST("ai.model.test", "SETTINGS_MANAGE"),
-    AI_MODEL_ASSIGN("ai.model.assign", "SETTINGS_MANAGE");
+    AI_MODEL_ASSIGN("ai.model.assign", "SETTINGS_MANAGE"),
+    JOBS_RUN("jobs.run", "SETTINGS_MANAGE"),
+    JOBS_CANCEL("jobs.cancel", "SETTINGS_MANAGE");
 
     private final String code;
     private final String requiredPermission;

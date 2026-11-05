@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/jobs-run.v1.json",
+  "title": "Payload of jobs.run v1",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,39}$" }
+  },
+  "additionalProperties": false
+}

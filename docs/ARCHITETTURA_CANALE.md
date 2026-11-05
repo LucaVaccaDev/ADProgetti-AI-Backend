@@ -47,3 +47,13 @@ Comando → tabella `command_outbox` (PENDING) → inviato (SENT) → ACKED → 
 3. `bash scripts/edge-set-secret.sh hub-edge-key` e `bash scripts/edge-set-secret.sh hub-command-public-key`.
 4. Impostare `EDGE_HUB_URL` in `.env` e `bash scripts/start-edge.sh`.
 5. `GET /api/system/status` deve mostrare `edgeConnected: true`.
+
+## Lavori (job engine)
+
+| Elemento | Dettaglio |
+| --- | --- |
+| Comando `jobs.run` | `{ "type": "SYSTEM_SELFCHECK" }` → risultato `{ jobId, created }`; errore `NOT_ALLOWED` se il tipo non è nella lista dell'Edge |
+| Comando `jobs.cancel` | `{ "jobId": "<uuid>" }` → `CANCELLED` (era in coda) o `CANCEL_REQUESTED`; errori `NOT_FOUND`, `ALREADY_FINISHED`, `NOT_CANCELLABLE` |
+| Proiezione `jobs.summary` | conteggi (in coda, in corso, riusciti/falliti nelle ultime 24 h), ultimi 30 lavori, pianificazioni; aggiornata a ogni cambiamento (controllo ogni 5 s) e a ogni riconnessione |
+| API Hub | `GET /api/jobs` (SYSTEM_READ), `POST /api/jobs/run`, `POST /api/jobs/{id}/cancel` (SETTINGS_MANAGE); i comandi rispondono 202 con `commandId` |
+

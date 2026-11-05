@@ -57,4 +57,34 @@ class PayloadsTest {
                 Map.of(AiFunction.EMBEDDING, "bge-m3"));
         assertThat(Payloads.read(Payloads.write(result), AiModelsResult.class)).isEqualTo(result);
     }
+
+    @Test
+    void jobsPayloadsAreValidatedAndRoundTrip() {
+        JobsRunPayload run = new JobsRunPayload("SYSTEM_SELFCHECK");
+        assertThat(Payloads.parse(CommandType.JOBS_RUN, Payloads.write(run))).isEqualTo(run);
+        String id = java.util.UUID.randomUUID().toString();
+        JobsCancelPayload cancel = new JobsCancelPayload(id);
+        assertThat(Payloads.parse(CommandType.JOBS_CANCEL, Payloads.write(cancel))).isEqualTo(cancel);
+        for (String bad : List.of("{\"type\":\"lower\"}", "{\"type\":\"../X\"}", "{\"type\":\"\"}",
+                "{\"type\":\"SYSTEM_SELFCHECK\",\"extra\":1}", "{}")) {
+            assertThatThrownBy(() -> Payloads.parse(CommandType.JOBS_RUN, bad)).as(bad)
+                    .isInstanceOf(InvalidPayloadException.class);
+        }
+        for (String bad : List.of("{\"jobId\":\"not-a-uuid\"}", "{\"jobId\":\"\"}", "{}")) {
+            assertThatThrownBy(() -> Payloads.parse(CommandType.JOBS_CANCEL, bad)).as(bad)
+                    .isInstanceOf(InvalidPayloadException.class);
+        }
+    }
+
+    @Test
+    void jobsSummaryRoundTripsWithoutAnyPayloadOrResultField() {
+        JobsSummaryProjection summary = new JobsSummaryProjection(new JobsSummaryProjection.Counts(1, 0, 5, 1),
+                List.of(new JobsSummaryProjection.Job("id", "SYSTEM_SELFCHECK", "SUCCEEDED", 1, 1,
+                        "2026-11-05T10:00:00Z", "2026-11-05T10:00:01Z", "2026-11-05T10:00:02Z", null, "admin", false)),
+                List.of(new JobsSummaryProjection.Schedule("protocol-run", "PROTOCOL_RUN", false, "Europe/Rome",
+                        List.of("14:30", "18:30"), null)));
+        String json = Payloads.write(summary);
+        assertThat(Payloads.read(json, JobsSummaryProjection.class)).isEqualTo(summary);
+        assertThat(json).doesNotContain("payload").doesNotContain("result");
+    }
 }

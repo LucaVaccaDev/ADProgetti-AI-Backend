@@ -36,6 +36,8 @@ class SchemaConsistencyTest {
     void schemasMatchRecords() throws Exception {
         check("ai-model-test.v1.json", AiModelTestPayload.class);
         check("ai-model-assign.v1.json", AiModelAssignPayload.class);
+        check("jobs-run.v1.json", JobsRunPayload.class);
+        check("jobs-cancel.v1.json", JobsCancelPayload.class);
         check("command-ack.v1.json", CommandAck.class);
         check("edge-heartbeat.v1.json", EdgeHeartbeat.class);
     }

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/jobs-cancel.v1.json",
+  "title": "Payload of jobs.cancel v1",
+  "type": "object",
+  "required": ["jobId"],
+  "properties": {
+    "jobId": { "type": "string", "format": "uuid" }
+  },
+  "additionalProperties": false
+}
