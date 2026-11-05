@@ -12,6 +12,8 @@
     <key>OLLAMA_MODELS</key><string>@MODELS_DIR@</string>
     <!-- No Ollama cloud models: studio data must never leave the Mac (D-04) -->
     <key>OLLAMA_NO_CLOUD</key><string>1</string>
+    <!-- The external SSD reads at ~40 MB/s: a 14-18 GB model needs 6-8 minutes to load (default limit: 5) -->
+    <key>OLLAMA_LOAD_TIMEOUT</key><string>30m</string>
     <key>OLLAMA_KEEP_ALIVE</key><string>10m</string>
     <key>OLLAMA_MAX_LOADED_MODELS</key><string>2</string>
     <key>OLLAMA_NUM_PARALLEL</key><string>2</string>

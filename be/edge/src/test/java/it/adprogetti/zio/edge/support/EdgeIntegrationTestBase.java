@@ -53,7 +53,19 @@ public abstract class EdgeIntegrationTestBase {
 
     protected static final StubOllama OLLAMA;
 
+    /** A fake NAS on the local disk: four shares, one share that is not mounted, and a folder outside them. */
+    protected static final java.nio.file.Path NAS;
+
     static {
+        try {
+            NAS = java.nio.file.Files.createTempDirectory("zio-nas-test").toRealPath();
+            for (String dir : new String[] { "archivio", "gare", "documenti", "temporanea", "outside" }) {
+                java.nio.file.Files.createDirectories(NAS.resolve(dir));
+            }
+            java.nio.file.Files.writeString(NAS.resolve("outside/secret.txt"), "top secret");
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
         POSTGRES.start();
         try {
             OLLAMA = new StubOllama();
@@ -71,6 +83,18 @@ public abstract class EdgeIntegrationTestBase {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("server.port", () -> PORT);
         registry.add("edge.ai.ollama-url", OLLAMA::url);
+        for (String share : new String[] { "archivio", "gare", "documenti", "temporanea" }) {
+            registry.add("edge.nas.shares." + share + ".mount", () -> NAS.resolve(share).toString());
+        }
+        registry.add("edge.nas.shares.fantasma.mount", () -> NAS.resolve("not-mounted").toString());
+        registry.add("edge.nas.modes.index-read[0]", () -> "archivio:/");
+        registry.add("edge.nas.modes.index-read[1]", () -> "documenti:/");
+        registry.add("edge.nas.modes.index-read[2]", () -> "gare:/");
+        registry.add("edge.nas.modes.index-read[3]", () -> "fantasma:/");
+        registry.add("edge.nas.modes.protocol-write[0]", () -> "archivio:/Protocolli");
+        registry.add("edge.nas.modes.tender-write[0]", () -> "gare:/");
+        registry.add("edge.nas.min-free-bytes", () -> "1");
+        registry.add("edge.nas.allow-unmounted-directory", () -> "true");
         registry.add("edge.hub.url", () -> "ws://localhost:" + PORT + "/edge/ws");
     }
 
