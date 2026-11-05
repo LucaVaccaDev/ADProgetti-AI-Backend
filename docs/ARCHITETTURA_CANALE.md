@@ -31,3 +31,19 @@ Comando → tabella `command_outbox` (PENDING) → inviato (SENT) → ACKED → 
 
 ## Esiti dei comandi lunghi
 `POST` → `202 {commandId}`; poi `GET /api/commands/{id}` (visibile solo a chi l'ha richiesto).
+
+## Lato Edge (`be/edge`)
+- **Rete:** l'Edge ascolta solo su `127.0.0.1:8081` (solo `/actuator/health`; tutto il resto è negato). Non accetta connessioni dalla rete: lavora solo tramite il canale in uscita.
+- **Connessione:** `HubConnection` si collega con backoff esponenziale (1 s → 60 s, ±20 % di jitter) e riparte da solo. `wss://` obbligatorio; `ws://` solo con `EDGE_HUB_ALLOW_INSECURE=true` (prove locali). Con `EDGE_HUB_CA_FILE` si considera fidata solo quella CA (pinning). Senza URL, credenziale o chiave pubblica lo stato è NOT_CONFIGURED (nuovo tentativo ogni 30 s, nessun arresto).
+- **Segreti:** nel portachiavi macOS, servizio `it.adprogetti.zio.edge`: `hub-edge-key` e `hub-command-public-key`. Si inseriscono con `scripts/edge-set-secret.sh <nome>` (valore digitato a prompt nascosto). Vengono riletti a ogni tentativo di connessione: una rotazione non richiede il riavvio.
+- **Comando in arrivo:** inbox (id univoco) → verifica firma Ed25519, scadenza e nonce **nella stessa transazione** (nonce persistenti) → ACK → policy propria dell'Edge (tipo noto e permesso presente) → validazione del payload → esecuzione sequenziale → risultato. Un id già visto non viene rieseguito: si rinvia il risultato salvato. Al Hub arrivano solo codici brevi (`BAD_SIGNATURE`, `EXPIRED`, `REPLAYED`, `POLICY`, `UNKNOWN_TYPE`, `INVALID_PAYLOAD`, `UNSUPPORTED`, `EXECUTION_ERROR`, `INTERRUPTED`), mai testi d'errore.
+- **Riavvio durante un comando:** un comando ricevuto ma non finito non viene rieseguito (potrebbe avere avuto effetti): si chiude come FAILED/INTERRUPTED e l'Hub viene avvisato.
+- **Outbox:** ACK, risultati e proiezioni sono salvati prima di essere inviati. L'Hub non conferma i risultati, quindi a ogni riconnessione si rinviano anche i messaggi inviati negli ultimi 5 minuti (l'Hub ignora i duplicati). Conservazione 24 ore.
+- **Heartbeat:** ogni 30 s con lo stato reale di database e Ollama (`UP/DOWN/NOT_CONFIGURED`), anche subito dopo il HELLO.
+
+## Accoppiamento passo per passo
+1. `bash scripts/start-hub.sh`, poi accedere come amministratore.
+2. `POST /api/integrations/edge/credential` → copiare la credenziale (compare una volta sola); `GET /api/integrations/edge/public-key`.
+3. `bash scripts/edge-set-secret.sh hub-edge-key` e `bash scripts/edge-set-secret.sh hub-command-public-key`.
+4. Impostare `EDGE_HUB_URL` in `.env` e `bash scripts/start-edge.sh`.
+5. `GET /api/system/status` deve mostrare `edgeConnected: true`.

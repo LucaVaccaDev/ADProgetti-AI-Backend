@@ -7,11 +7,12 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Funzionalità | Componente | Stato | Note |
 | --- | --- | --- | --- |
 | Repository, struttura, documenti di registro | tutti | IN_SVILUPPO | |
-| Database e migrazioni Flyway | hub | TESTATA_CON_SERVIZIO_REALE | Postgres 17 reale (Testcontainers e locale). Edge: SPECIFICATA |
+| Database e migrazioni Flyway | hub, edge | TESTATA_CON_SERVIZIO_REALE | Postgres 17 reale (Testcontainers e locale); Edge con pgvector |
 | Contratti Hub↔Edge (comandi firmati Ed25519) | contracts | IMPLEMENTATA | Testata con dati simulati (8 test unitari) |
 | Autenticazione (login, refresh con rotazione, logout), ruoli e permessi, gestione utenti, audit | hub | TESTATA_CON_SERVIZIO_REALE | 22 test con Postgres reale. **TOTP non implementato (D-10)** |
 | TOTP | hub | BLOCCATA_DA_DIPENDENZA | Sospeso su richiesta del committente (D-10); obbligatorio prima dell'esposizione su Internet |
-| Canale Hub↔Edge — lato Hub (WebSocket, credenziale Edge, comandi firmati, outbox/inbox, proiezioni) | hub | TESTATA_CON_SERVIZIO_REALE | Postgres reale e client WebSocket reale (finto Edge in test); 22 test. Lato Edge: SPECIFICATA |
+| Canale Hub↔Edge — lato Hub (WebSocket, credenziale Edge, comandi firmati, outbox/inbox, proiezioni) | hub | TESTATA_CON_SERVIZIO_REALE | Postgres reale e client WebSocket reale (finto Edge in test); 22 test; prova con l'Edge vero il 05/11 |
+| Canale Hub↔Edge — lato Edge (client in uscita, verifica comandi, policy, inbox/outbox, heartbeat, portachiavi) | edge | TESTATA_CON_SERVIZIO_REALE | 23 test con Postgres+pgvector e finto Hub; prova con l'Hub vero il 05/11. Comandi `ai.*` ancora senza esecutore (rifiutati UNSUPPORTED) |
 | Job engine e scheduler | edge | SPECIFICATA | |
 | AI gateway (Ollama, FreeLLMAPI) | edge | SPECIFICATA | |
 | Servizio percorsi NAS | edge | SPECIFICATA | |

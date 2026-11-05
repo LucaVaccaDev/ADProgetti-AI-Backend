@@ -1,6 +1,6 @@
 # Stato dei lavori e ripartenza
 
-Aggiornato il 05/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md`.
+Aggiornato il 05/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md`.
 
 ## Dove siamo (Release 1 — Fondamenta)
 
@@ -11,7 +11,11 @@ Aggiornato il 05/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, 
 
 **Capitolato v1.1 recepito (05/11)** — `docs/capitolato/Capitolato_Progetto_Zio_Pino_v1.1.md`: posta via **IMAP diretto dall'Edge** (Allegato D, D-11; niente agenti Outlook), Allegato E sul modulo Gare (D-12), profilo AI `test-24GB` (T-19). Aggiornati CLAUDE.md, DECISION_LOG, FEATURE_STATUS, MENU_E_PAGINE e le etichette del frontend (T-20).
 
-**Prossimo passo concordato:** creare il modulo **Edge** (`apps/edge`, sul Mac Mini, utenza dedicata) e il **canale Hub↔Edge** (WebSocket in uscita, comandi firmati, outbox/inbox). Il piano (moduli, file, migrazioni, endpoint, test) va mostrato e confermato prima di scrivere codice (CLAUDE.md §6).
+**Fatto il 05/11:** capitolato v1.1 recepito; contratti; canale Hub↔Edge (lato Hub e lato Edge) provato con Hub ed Edge veri; Ollama installato con Qwen3 8B e bge-m3 sull'SSD. Dettagli in `docs/ARCHITETTURA_CANALE.md`.
+
+**Prossimo passo (passo 4):** AI gateway e comandi `ai.*` sull'Edge (provider Ollama, coda, schemi, registro d'uso, benchmark, modelli grandi dopo il benchmark).
+
+**Piano originario (superato):** creare il modulo **Edge** (`apps/edge`, sul Mac Mini, utenza dedicata) e il **canale Hub↔Edge** (WebSocket in uscita, comandi firmati, outbox/inbox). Il piano (moduli, file, migrazioni, endpoint, test) va mostrato e confermato prima di scrivere codice (CLAUDE.md §6).
 
 **Poi, ancora da fare nella Release 1:** collegare i dati reali al web, job engine e scheduler, servizio percorsi NAS, AI gateway (Ollama + FreeLLMAPI, gruppi TESTO e IMMAGINI), script di avvio e installazione in `infra/`, stato di sistema reale.
 
