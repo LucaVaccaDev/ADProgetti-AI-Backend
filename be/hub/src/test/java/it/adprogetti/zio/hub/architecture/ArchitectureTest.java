@@ -48,4 +48,15 @@ class ArchitectureTest {
     static final ArchRule controllers_are_in_api = classes().that()
             .areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
             .should().resideInAPackage(BASE + "api..");
+
+    @ArchTest
+    static final ArchRule channel_is_independent_of_identity_and_web = noClasses().that()
+            .resideInAPackage(BASE + "channel..").should().dependOnClassesThat()
+            .resideInAnyPackage(BASE + "identity..", BASE + "auth..", BASE + "security..", BASE + "api..");
+
+    /** D-04: the Hub never calls AI providers (or any other external service) on its own. */
+    @ArchTest
+    static final ArchRule hub_makes_no_outbound_http_calls = noClasses().should().dependOnClassesThat()
+            .resideInAnyPackage("java.net.http..", "org.springframework.web.client..",
+                    "org.springframework.web.reactive.function.client..", "org.apache.hc..");
 }

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +22,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /** Deny by default: everything needs a valid token except login, refresh and health. */
 @Configuration
+@EnableMethodSecurity // without this, @PreAuthorize annotations are silently ignored
 @EnableConfigurationProperties(SecurityProperties.class)
 class SecurityConfig {
 
@@ -38,6 +40,8 @@ class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Edge WebSocket: authenticated in the handshake with the Edge credential (X-Edge-Key)
+                        .requestMatchers("/edge/ws").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("USERS_MANAGE")
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(problems).accessDeniedHandler(problems))
