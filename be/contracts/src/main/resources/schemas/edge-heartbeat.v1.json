@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/edge-heartbeat.v1.json",
+  "title": "EdgeHeartbeat v1",
+  "type": "object",
+  "required": ["schemaVersion", "edgeVersion", "sentAtEpochMs", "uptimeSeconds", "services"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "edgeVersion": { "type": "string" },
+    "sentAtEpochMs": { "type": "integer" },
+    "uptimeSeconds": { "type": "integer", "minimum": 0 },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "state", "detail"],
+        "properties": {
+          "name": { "type": "string" },
+          "state": { "enum": ["UP", "DOWN", "DEGRADED", "NOT_CONFIGURED"] },
+          "detail": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

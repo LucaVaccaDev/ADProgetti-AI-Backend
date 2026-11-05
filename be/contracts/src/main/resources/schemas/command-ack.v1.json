@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/command-ack.v1.json",
+  "title": "CommandAck v1",
+  "type": "object",
+  "required": ["schemaVersion", "commandId", "receivedAtEpochMs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "commandId": { "type": "string", "minLength": 1 },
+    "receivedAtEpochMs": { "type": "integer" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adprogetti.it/zio/schemas/ai-model-test.v1.json",
+  "title": "Payload of ai.model.test v1",
+  "type": "object",
+  "required": ["model", "function"],
+  "properties": {
+    "model": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$" },
+    "function": { "enum": ["CLASSIFICATION", "EXTRACTION", "ANALYSIS", "DRAFTING", "IMAGES", "EMBEDDING"] }
+  },
+  "additionalProperties": false
+}
