@@ -34,8 +34,15 @@ import org.testcontainers.utility.DockerImageName;
         "edge.hub.reconnect-initial=100ms",
         "edge.hub.reconnect-max=400ms",
         "edge.heartbeat-interval=500ms",
-        "edge.secrets.store=test" })
-@Import(EdgeIntegrationTestBase.HubConfig.class)
+        "edge.secrets.store=test",
+        "edge.jobs.workers=3",
+        "edge.jobs.poll-interval=50ms",
+        "edge.jobs.lease=1s",
+        "edge.jobs.schedules.test-run.enabled=true",
+        "edge.jobs.schedules.test-run.type=TEST_SCHEDULED",
+        "edge.jobs.schedules.test-run.zone=Europe/Rome",
+        "edge.jobs.schedules.test-run.times=14:30,18:30" })
+@Import({ EdgeIntegrationTestBase.HubConfig.class, TestJobHandlers.class })
 public abstract class EdgeIntegrationTestBase {
 
     public static final String EDGE_KEY = "test-edge-key-0123456789";
