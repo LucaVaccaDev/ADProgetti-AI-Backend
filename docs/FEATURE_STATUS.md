@@ -20,3 +20,7 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Web: Segreteria, Gare, BIM, Foto, Ricerca e chat, Calendario, Commesse, Amministrazione (pagine) | fe | IN_SVILUPPO | Solo struttura e stati vuoti; contenuti dei capitoli 4–11 di MENU_E_PAGINE da realizzare uno per volta |
 | Stato sistema (`/api/system/status`) | hub | IMPLEMENTATA | Edge sempre "non collegato" finché non esiste il canale |
 | Script di installazione, avvio, arresto | infra, scripts | SPECIFICATA | |
+| Connettore IMAP Aruba (4 ordinarie + 2 PEC, PEC sola lettura, UID per cartella, IDLE) | edge | SPECIFICATA | Allegato D / D-11; sostituisce gli agenti Outlook. Prerequisiti D.3 da verificare col committente |
+| Import storico email (IMAP + PST/OLM, marcato STORICO, riprendibile) | edge | SPECIFICATA | Allegato D.2; verificare spazio Mac/NAS e elenco PST/OLM |
+| Modulo Gare — decisioni dettagliate (indice probabilità, criticità, requisiti, AI commissario, pacchetto offerta, firme, post-presentazione) | hub, edge, fe | SPECIFICATA | Allegato E / D-12; Release 4 |
+| Profilo AI locale `test-24GB` e benchmark modelli | edge | SPECIFICATA | T-19 |

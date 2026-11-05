@@ -4,13 +4,16 @@ Va nella radice del repository `ad-progetti-ai-hub/`. Claude Code lo legge a ogn
 
 ## 1. Specifica di riferimento e precedenze
 
-La specifica funzionale completa è il capitolato in `docs/capitolato/Capitolato_Progetto_Zio_Pino.txt` (v1.0, 01/11/2026). I materiali del committente sono in `docs/materiali/` e sono in **sola lettura**.
+La specifica funzionale completa è il capitolato unico **v1.1** (04/11/2026) in `docs/capitolato/Capitolato_Progetto_Zio_Pino_v1.1.md`; contiene anche grafica (Parte 2) e menu/pagine (Parte 3). La v1.0 (`Capitolato_Progetto_Zio_Pino.txt`) resta solo come storico. I materiali del committente sono in `docs/materiali/` e sono in **sola lettura**.
 
 In caso di contrasto vale questo ordine:
 
 1. Le **deviazioni D-01…D-08** qui sotto (decise dal committente dopo il capitolato).
-2. Le sezioni 27–33 e gli Allegati A, B, C del capitolato.
-3. Il resto del capitolato.
+2. Gli Allegati **E (Gare)** e **D (Email IMAP Aruba)** del capitolato v1.1.
+3. Gli Allegati C, B, A e le sezioni 27–33.
+4. Il resto del capitolato.
+
+L'Allegato B.1 (agenti Outlook) è **sostituito** dall'Allegato D e non va implementato.
 
 Ogni deviazione e ogni scelta tecnica non banale va registrata in `docs/DECISION_LOG.md`.
 
@@ -26,8 +29,9 @@ Ogni deviazione e ogni scelta tecnica non banale va registrata in `docs/DECISION
 | D-06 | I ruoli si combinano. L'amministratore gestisce utenti e configurazioni e vede tutte le aree amministrative e operative, **tranne** le chat altrui (B.5) e le gare individuate se non ha anche il ruolo Responsabile gare (B.3). | Precisa sez. 36, C.2 |
 | D-07 | Struttura del repository adattata allo stack (§3). | Sez. 3.2 |
 | D-08 | Gli utenti si creano **solo** da amministratore; nessuna registrazione pubblica. | Precisa sez. 36 |
+| D-11 | Posta: l'**Edge** si collega via IMAP/TLS (993) alle 4 caselle ordinarie e 2 PEC Aruba; credenziali nel portachiavi macOS. PEC in sola lettura garantita dal codice (EXAMINE, BODY.PEEK, nessun STORE/MOVE/COPY/EXPUNGE/APPEND, con test). Storico importato una tantum da PST/OLM, marcato STORICO. | Allegato B.1 (agenti Outlook) |
 
-Decisioni del 30/10 **superate** dal capitolato, da non riproporre: lettura IMAP diretta (ora agenti Outlook, B.1); API a pagamento Claude/Google per gare e foto (ora FreeLLMAPI, Allegato A, con provider sostituibile); protocollo per commessa (ora per fase, sez. 7).
+Decisioni del 30/10 **superate** dal capitolato, da non riproporre: API a pagamento Claude/Google per gare e foto (ora FreeLLMAPI, Allegato A, con provider sostituibile); protocollo per commessa (ora per fase, sez. 7).
 
 ## 3. Struttura del repository
 
@@ -36,13 +40,12 @@ ad-progetti-ai-hub/
 ├── apps/
 │   ├── web/        Angular (PWA) — servito dall'Hub
 │   ├── hub/        Spring Boot — VPS Aruba Cloud: API, autenticazione, dati collaborativi, proiezioni
-│   └── edge/       Spring Boot — Mac Mini: job engine, scheduler, AI gateway, NAS, protocollo, indicizzazione, endpoint agenti LAN
+│   └── edge/       Spring Boot — Mac Mini: job engine, scheduler, AI gateway, NAS, protocollo, indicizzazione, connettore IMAP Aruba, endpoint agenti Revit LAN
 ├── libs/
 │   └── contracts/  DTO e schemi JSON condivisi Hub↔Edge e Edge↔agenti (versionati)
 ├── agents/
-│   ├── outlook-agent/  C# .NET (Windows) — Release 2
 │   └── revit/          fork interno di rvt-mcp + toolset AD Progetti — Release 7
-├── infra/          deploy Hub (Docker Compose, nginx), installazione Edge (launchd), script agenti
+├── infra/          deploy Hub (Docker Compose, nginx), installazione Edge (launchd), script agenti Revit
 ├── docs/
 │   ├── capitolato/  capitolato (sola lettura)
 │   ├── materiali/   file del committente (sola lettura)
@@ -71,7 +74,8 @@ File richiesti dall'esterno (anteprima di un allegato o di un documento): solo *
 - Ogni comando Hub→Edge è **firmato** dall'Hub (Ed25519), con id univoco, utente richiedente, permessi verificati, scadenza e nonce. L'Edge verifica firma, scadenza e unicità, e **riapplica le proprie policy invarianti** (es. PEC sola lettura, scrittura NAS solo nei percorsi ammessi, invio email solo con approvazione registrata).
 - Consegna almeno-una-volta con tabelle outbox/inbox su entrambi i lati e chiave di idempotenza: un comando ripetuto non viene rieseguito.
 - Se il canale cade, l'Edge continua il lavoro locale (protocollo delle 14:30/18:30, acquisizione email, indicizzazione) e sincronizza le proiezioni alla riconnessione. L'Hub mostra "Studio non collegato".
-- Gli agenti Outlook e gli agenti delle postazioni Revit parlano **solo** con l'Edge in LAN (HTTPS con certificato interno + token per agente), mai con l'Hub.
+- La posta si legge **dall'Edge via IMAP diretto** alle caselle Aruba (Allegato D, D-11): nessun agente Outlook sui PC.
+- Gli agenti delle postazioni Revit parlano **solo** con l'Edge in LAN (HTTPS con certificato interno + token per agente), mai con l'Hub.
 
 ## 6. Modo di lavorare (dalla sez. 0.2–0.4 del capitolato)
 

@@ -47,7 +47,7 @@ Voce attiva: pillola blu piena con testo bianco. Icone a linea per le voci "Assi
 4. **Impegni del mese** (accanto al calendario): elenco con data, icona del tipo (DL, appuntamento, gara, amministrazione), titolo e dettaglio; clic su un giorno del calendario → mostra solo quel giorno; link "Apri calendario".
 5. **Tre numeri del giorno**: Email da verificare (primo riquadro, blu pieno), Gare nuove da valutare, Le tue attività aperte — ognuno con confronto.
 6. **Tre elenchi**: Le tue commesse (fase, barra di avanzamento, prossimo passo) · Gare in corso (scadenza e stato) · Ultimi protocolli (numero e descrizione).
-7. **Riga Sistema** (solo amministratore): NAS, AI locale, agenti Outlook (N di M attivi), registro Excel, consumo AI online dello studio.
+7. **Riga Sistema** (solo amministratore): NAS, AI locale, caselle email IMAP (N di 6 connesse), registro Excel, consumo AI online dello studio.
 
 Il contenuto si adatta al ruolo: chi segue la DL vede prima le proprie commesse e scadenze; il responsabile gare vede le gare da valutare.
 
@@ -144,7 +144,7 @@ Elenco commesse rilevate dal NAS (attivate / non attivate) con fase, responsabil
 
 - **Utenti e ruoli** (amministratore, collaboratore, responsabile DL, responsabile gare, amministratore BIM, abilitati protocollo/referenze).
 - **Utenti online** (dettaglio con ultimo accesso).
-- **Agenti Outlook** (uno per PC: stato, ultimo contatto, messaggi acquisiti).
+- **Caselle email** (una per casella: connessa, ultimo controllo, messaggi acquisiti, errori).
 - **Modelli AI**: modelli installati, memoria, assegnazione modello → funzione, test rapido, ripristino.
 - **FreeLLMAPI e quote**: gruppi TESTO/IMMAGINI, riserva mensile, ripartizione dinamica per utente con proposta di ricalcolo mensile.
 - **NAS e percorsi**, cartelle escluse (vuoto), file certificazioni.
