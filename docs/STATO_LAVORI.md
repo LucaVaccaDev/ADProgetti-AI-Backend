@@ -19,6 +19,8 @@ Aggiornato il 05/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, 
 
 ## Ambiente (Mac Mini M4 Pro, 24 GB)
 
+- **Utenza Edge (`aihub`)**: JDK 21, Maven e Node 24 in `~/tools` (`source scripts/env.sh`). Ollama in `~/tools/ollama` come servizio launchd su 127.0.0.1:11434, modelli sull'SSD `/Volumes/AI/ollama/models` (T-21, T-22). Colima per Testcontainers va avviato (`colima start`) prima dei test dell'Hub.
+
 - Lo sviluppo è passato a un'**utenza dedicata all'Edge**. Cose per utente da rifare lì: configurazione git e Claude Code, estensioni VS Code, accessi, `~/tools` (Node 24 LTS, Maven 3.9: vedi `scripts/env.sh`), Colima per Testcontainers.
 - Homebrew nativo in `/opt/homebrew` (Postgres 17 + pgvector, Colima). Il `brew` in `/usr/local` è la versione Intel e non funziona.
 - **Node:** in `PATH` può esserci un node Intel in `/usr/local/bin`: con i moduli arm64 di `node_modules` fa fallire `ng serve`. Usare Node 24 da `scripts/env.sh` o `/opt/homebrew/bin/node`.

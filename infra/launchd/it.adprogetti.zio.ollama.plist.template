@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>it.adprogetti.zio.ollama</string>
+  <key>ProgramArguments</key>
+  <array><string>@OLLAMA_BIN@</string><string>serve</string></array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- Local only: never reachable from the LAN or the Internet (D-04) -->
+    <key>OLLAMA_HOST</key><string>127.0.0.1:11434</string>
+    <key>OLLAMA_MODELS</key><string>@MODELS_DIR@</string>
+    <!-- No Ollama cloud models: studio data must never leave the Mac (D-04) -->
+    <key>OLLAMA_NO_CLOUD</key><string>1</string>
+    <key>OLLAMA_KEEP_ALIVE</key><string>10m</string>
+    <key>OLLAMA_MAX_LOADED_MODELS</key><string>2</string>
+    <key>OLLAMA_NUM_PARALLEL</key><string>2</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>@LOG_DIR@/zio-ollama.log</string>
+  <key>StandardErrorPath</key><string>@LOG_DIR@/zio-ollama.log</string>
+</dict>
+</plist>
