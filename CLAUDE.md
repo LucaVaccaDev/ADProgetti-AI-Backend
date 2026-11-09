@@ -25,7 +25,7 @@ Ogni deviazione e ogni scelta tecnica non banale va registrata in `docs/DECISION
 | D-02 | Due componenti server: **Hub** su VPS Aruba Cloud (Italia), raggiungibile da Internet in HTTPS; **Edge** sul Mac Mini in studio, che **non accetta connessioni da Internet** e apre lui un canale in uscita verso l'Hub. Niente VPN per gli utenti. | C.1 (solo LAN), C.14 (accesso remoto via VPN), C.15 (app installata solo sul Mac). Resta la PWA di C.15. |
 | D-03 | Confine dei dati: vedi §4. Sull'Hub solo identità, lavoro collaborativo e **risultati**; email complete, allegati, documenti, file NAS, indice ed embedding restano sull'Edge e sul NAS. | Integra sez. 37.2 |
 | D-04 | Tutta l'AI gira dall'Edge (Ollama + FreeLLMAPI su localhost del Mac). L'Hub non chiama mai provider AI e non custodisce chiavi AI. | Integra Allegato A.4 |
-| D-05 | Hub esposto su Internet → **TOTP obbligatorio per tutti gli utenti** di default (configurabile dall'amministratore per singolo utente, mai disattivabile per gli amministratori). | C.14 (TOTP opzionale) |
+| D-05 | **Superata da D-10 (09/11/2026): il TOTP è escluso dal progetto.** Hub esposto su Internet con sola password: rate limiting, blocco account e password robuste obbligatori. | C.14 (TOTP opzionale) |
 | D-06 | I ruoli si combinano. L'amministratore gestisce utenti e configurazioni e vede tutte le aree amministrative e operative, **tranne** le chat altrui (B.5) e le gare individuate se non ha anche il ruolo Responsabile gare (B.3). | Precisa sez. 36, C.2 |
 | D-07 | Struttura del repository adattata allo stack (§3). | Sez. 3.2 |
 | D-08 | Gli utenti si creano **solo** da amministratore; nessuna registrazione pubblica. | Precisa sez. 36 |

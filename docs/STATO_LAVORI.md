@@ -1,11 +1,27 @@
 # Stato dei lavori e ripartenza
 
-Aggiornato il 05/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md`.
+Aggiornato il 09/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md`.
+
+## Ripartenza dal 09/11/2026
+
+**Decisioni di oggi:** TOTP escluso dal progetto (D-10, D-05 superata); FreeLLMAPI installato senza Docker (T-39).
+
+**Servizi in esecuzione (avvio manuale, non ripartono da soli al riavvio):** Postgres 17 (utenza `lucavacca`), Ollama (11434), Hub (8080), Edge (8081), frontend `npm start` (4200), FreeLLMAPI `npm run dev` (server 3001, dashboard 5173, solo localhost). Log in `/private/tmp/claude-502/logs/`. Per riavviare: `bash scripts/start-hub.sh`, `bash scripts/start-edge.sh`, `npm start` in `fe/` con Node 24 per primo nel `PATH` (`$HOME/tools/node-v24.22.2-darwin-arm64/bin`; il Node 26 di Homebrew non va per FreeLLMAPI). `brew` non è utilizzabile da questa utenza.
+
+**Problema aperto, da fare per primo:** l'Edge si avvia ma **non risulta collegato all'Hub** (nessuna riga di connessione nel log). Sospetto: credenziale dell'Edge e chiave pubblica dell'Hub mancanti nel portachiavi di questa utenza (`scripts/edge-set-secret.sh`). Da verificare nel codice come l'Edge le cerca. Può servire anche un utente amministratore (`scripts/create-admin.sh`).
+
+**FreeLLMAPI:** installato in `~/tools/freellmapi`, nessun account né chiave ancora inseriti. Tocca al committente: creare l'account sulla dashboard (http://localhost:5173), creare le chiavi dei provider gratuiti (consigliati: Google Gemini, Groq, Mistral, OpenRouter; per le immagini SiliconFlow) e inserirle nella pagina Keys, senza incollarle in chat. Poi: gruppi TESTO/IMMAGINI, servizio launchd, collegamento all'`AiGateway`, chiave `freellmapi-…` nel portachiavi dell'Edge. Controllare i termini dei piani gratuiti sull'uso dei dati (Allegato A.3). Ci sono 37 vulnerabilità npm segnalate nel clone, da guardare prima della produzione.
+
+**NAS:** non montato (in `/Volumes` solo `AI`). Servono: utente NAS in sola lettura, conferma dei nomi delle condivisioni, nome reale della cartella dei protocolli. Procedura in `docs/NAS.md`; poi prova dei test sul NAS vero.
+
+**Ancora bloccato (T-38):** benchmark dei modelli grandi, per l'SSD esterno lento.
+
+**Ordine proposto per domani:** 1) canale Hub↔Edge; 2) NAS; 3) FreeLLMAPI (chiavi e gateway); 4) `infra/` e script di installazione, `npm audit`/Dependency-Check; 5) Release 2 (IMAP Aruba, protocollo): servono credenziali IMAP e elenco PST/OLM. Piano completo delle Release 2–8 in capitolato sez. 43.
 
 ## Dove siamo (Release 1 — Fondamenta)
 
 **Fatto**
-- Repository, contratti Hub↔Edge (comandi firmati Ed25519), Hub (database, autenticazione, ruoli, utenti, audit; senza TOTP, D-10).
+- Repository, contratti Hub↔Edge (comandi firmati Ed25519), Hub (database, autenticazione, ruoli, utenti, audit; TOTP escluso dal progetto, D-10).
 - Web: login, gestione utenti, PWA, grafica Bento, menu laterale in vetro, Panoramica, pagine di sezione con stati vuoti (T-15…T-18). Specifiche in `docs/GRAFICA.md` e `docs/MENU_E_PAGINE.md`.
 - Build e 18 test Vitest verdi. L'interfaccia è stata controllata a vista dal committente (ok); **tutti i dati sono ancora statici** e vanno collegati.
 
@@ -19,7 +35,7 @@ Aggiornato il 05/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUD
 
 **Poi, ancora da fare nella Release 1:** collegare i dati reali al web, job engine e scheduler, servizio percorsi NAS, AI gateway (Ollama + FreeLLMAPI, gruppi TESTO e IMMAGINI), script di avvio e installazione in `infra/`, stato di sistema reale.
 
-**Alternative indipendenti dall'Edge** (se si vuole un risultato visibile prima): TOTP (obbligatorio prima di esporre l'Hub su Internet), calendario sull'Hub, Dependency-Check e `npm audit` (T-10), `infra/` con nginx e CSP.
+**Alternative indipendenti dall'Edge** (se si vuole un risultato visibile prima): calendario sull'Hub, Dependency-Check e `npm audit` (T-10), `infra/` con nginx e CSP.
 
 ## Ambiente (Mac Mini M4 Pro, 24 GB)
 
