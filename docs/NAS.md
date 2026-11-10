@@ -26,6 +26,9 @@ Radici per modalità (predefinite): lettura = archivio, documenti, gare; scrittu
 3. Per il riavvio automatico: Impostazioni › Generali › Elementi login › aggiungi i tre volumi (o usa un utente dedicato in sola lettura per la prima prova).
 4. Controlla la riga «NAS» in Panoramica: da «non raggiungibile» deve passare a «collegato».
 
+## Prova in sola lettura sull'SSD (10/11/2026)
+Con `bash scripts/start-edge.sh --spring.profiles.active=ssdtest` l'Edge vede soltanto `GARE 2024` e `GARE 2025` dell'SSD `/Volumes/AI` (come condivisione `gare`, solo `INDEX_READ`); nessuna scrittura, nessun'altra condivisione, quindi anche il NAS vero, se montato, non è raggiungibile. In Panoramica il NAS risulta «1 su 4». Test: `NasSsdReadOnlyTrialTest`. Per tornare alla configurazione normale riavviare senza il profilo.
+
 ## Limiti noti
 - Provato solo su una cartella locale di prova (link simbolici, nomi anomali, scritture concorrenti, hash): **non** ancora sul NAS vero.
 - Una condivisione SMB che si blocca può fermare una scrittura già avviata (le verifiche preliminari hanno invece un tempo massimo).
