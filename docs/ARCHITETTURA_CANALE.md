@@ -43,6 +43,7 @@ Comando → tabella `command_outbox` (PENDING) → inviato (SENT) → ACKED → 
 
 ## Accoppiamento passo per passo
 1. `bash scripts/start-hub.sh`, poi accedere come amministratore.
+2. In alternativa ai passi 2–3, `bash scripts/edge-pair.sh` (password dell'amministratore al prompt) fa tutto e salva nel portachiavi.
 2. `POST /api/integrations/edge/credential` → copiare la credenziale (compare una volta sola); `GET /api/integrations/edge/public-key`.
 3. `bash scripts/edge-set-secret.sh hub-edge-key` e `bash scripts/edge-set-secret.sh hub-command-public-key`.
 4. Impostare `EDGE_HUB_URL` in `.env` e `bash scripts/start-edge.sh`.
