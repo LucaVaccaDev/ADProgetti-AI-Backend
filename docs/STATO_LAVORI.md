@@ -1,22 +1,18 @@
 # Stato dei lavori e ripartenza
 
-Aggiornato il 09/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md`.
+Aggiornato il 10/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
 
-## Ripartenza dal 09/11/2026
+## Ripartenza dall'11/11/2026
 
-**Decisioni di oggi:** TOTP escluso dal progetto (D-10, D-05 superata); FreeLLMAPI installato senza Docker (T-39).
+**Fatto il 10/11:** canale Hub↔Edge funzionante (T-40); tutto sull'utenza `aihub`, Postgres in `~/pgdata`; prova NAS in sola lettura sull'SSD (T-41); `nas.list` fino alla pagina `/admin/nas` (T-42); FreeLLMAPI nel gateway AI, chiave nel portachiavi, catena TESTO con 46 modelli (T-43); indice documentale PDF con PDFBox, `docs.search` e pagina `/admin/docs` (T-44, commit `20e2674`). Test: 286 backend, 39 frontend, tutti verdi.
 
-**Servizi in esecuzione (avvio manuale, non ripartono da soli al riavvio):** Postgres 17 (utenza `lucavacca`), Ollama (11434), Hub (8080), Edge (8081), frontend `npm start` (4200), FreeLLMAPI `npm run dev` (server 3001, dashboard 5173, solo localhost). Log in `/private/tmp/claude-502/logs/`. Per riavviare: `bash scripts/start-hub.sh`, `bash scripts/start-edge.sh`, `npm start` in `fe/` con Node 24 per primo nel `PATH` (`$HOME/tools/node-v24.22.2-darwin-arm64/bin`; il Node 26 di Homebrew non va per FreeLLMAPI). `brew` non è utilizzabile da questa utenza.
+**Servizi (avvio manuale, non ripartono da soli):** Colima, Postgres (`~/pgdata`), Ollama, FreeLLMAPI (`npm run dev` in `~/tools/freellmapi`, Node 24 per primo nel `PATH`), Hub `bash scripts/start-hub.sh`, Edge `bash scripts/start-edge.sh --spring.profiles.active=ssdtest`, frontend `npm start` in `fe/`. Log in `~/logs/`. Segreti in `.env` (non in git) e nel portachiavi.
 
-**Problema aperto, da fare per primo:** l'Edge si avvia ma **non risulta collegato all'Hub** (nessuna riga di connessione nel log). Sospetto: credenziale dell'Edge e chiave pubblica dell'Hub mancanti nel portachiavi di questa utenza (`scripts/edge-set-secret.sh`). Da verificare nel codice come l'Edge le cerca. Può servire anche un utente amministratore (`scripts/create-admin.sh`).
+**Da fare per primo domani:**
+1. Avviare i servizi, aprire `/admin/docs`, premere «Aggiorna indice» (200 file per giro, solo `GARE 2025`) finché è «Completata»; provare qualche ricerca; tarare `edge.docs.min-similarity`.
+2. Premere «Prova FreeLLMAPI» in Amministrazione > Modelli AI (la catena TESTO ora ha modelli; con curl funzionava).
 
-**FreeLLMAPI:** installato in `~/tools/freellmapi`, nessun account né chiave ancora inseriti. Tocca al committente: creare l'account sulla dashboard (http://localhost:5173), creare le chiavi dei provider gratuiti (consigliati: Google Gemini, Groq, Mistral, OpenRouter; per le immagini SiliconFlow) e inserirle nella pagina Keys, senza incollarle in chat. Poi: gruppi TESTO/IMMAGINI, servizio launchd, collegamento all'`AiGateway`, chiave `freellmapi-…` nel portachiavi dell'Edge. Controllare i termini dei piani gratuiti sull'uso dei dati (Allegato A.3). Ci sono 37 vulnerabilità npm segnalate nel clone, da guardare prima della produzione.
-
-**NAS:** non montato (in `/Volumes` solo `AI`). Servono: utente NAS in sola lettura, conferma dei nomi delle condivisioni, nome reale della cartella dei protocolli. Procedura in `docs/NAS.md`; poi prova dei test sul NAS vero.
-
-**Ancora bloccato (T-38):** benchmark dei modelli grandi, per l'SSD esterno lento.
-
-**Ordine proposto per domani:** 1) canale Hub↔Edge; 2) NAS; 3) FreeLLMAPI (chiavi e gateway); 4) `infra/` e script di installazione, `npm audit`/Dependency-Check; 5) Release 2 (IMAP Aruba, protocollo): servono credenziali IMAP e elenco PST/OLM. Piano completo delle Release 2–8 in capitolato sez. 43.
+**Aperti:** `.p7m` (841 in GARE 2025, serve BouncyCastle); OCR per circa il 6% di PDF scansionati (Tesseract non installato); ripiego AI locale senza modello ANALYSIS (T-38, SSD lento); catena IMMAGINI con soli modelli testo; 37 vulnerabilità npm in FreeLLMAPI da rivedere; `infra/` e launchd per l'avvio automatico; `npm audit`/Dependency-Check (T-10); NAS vero (utente di sola lettura, nomi condivisioni, cartella protocolli: `docs/NAS.md`); Release 2 (IMAP Aruba, protocollo: credenziali e elenco PST/OLM); il repository non ha un remote.
 
 ## Dove siamo (Release 1 — Fondamenta)
 
