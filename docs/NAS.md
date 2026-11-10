@@ -29,6 +29,9 @@ Radici per modalità (predefinite): lettura = archivio, documenti, gare; scrittu
 ## Prova in sola lettura sull'SSD (10/11/2026)
 Con `bash scripts/start-edge.sh --spring.profiles.active=ssdtest` l'Edge vede soltanto `GARE 2024` e `GARE 2025` dell'SSD `/Volumes/AI` (come condivisione `gare`, solo `INDEX_READ`); nessuna scrittura, nessun'altra condivisione, quindi anche il NAS vero, se montato, non è raggiungibile. In Panoramica il NAS risulta «1 su 4». Test: `NasSsdReadOnlyTrialTest`. Per tornare alla configurazione normale riavviare senza il profilo.
 
+## Esplorare le cartelle dal web (T-42)
+Amministrazione › «NAS e percorsi» › `/admin/nas` (permesso `SETTINGS_MANAGE`). Parte dalle radici ammesse per la lettura, poi si entra nelle cartelle; nomi, tipo, dimensione e data, 100 voci per pagina. Nessun download né anteprima. Il comando `nas.list` usa sempre `INDEX_READ` sull'Edge e l'Hub cancella il risultato 2 minuti dopo l'arrivo. Errori mostrati: «Studio non collegato», «NAS non raggiungibile», «Cartella non consentita», «Cartella non trovata».
+
 ## Limiti noti
 - Provato solo su una cartella locale di prova (link simbolici, nomi anomali, scritture concorrenti, hash): **non** ancora sul NAS vero.
 - Una condivisione SMB che si blocca può fermare una scrittura già avviata (le verifiche preliminari hanno invece un tempo massimo).

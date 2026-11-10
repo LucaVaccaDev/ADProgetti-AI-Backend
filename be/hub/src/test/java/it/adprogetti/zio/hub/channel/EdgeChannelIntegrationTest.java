@@ -476,4 +476,74 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
         assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
     }
+
+    // --- nas.list ---------------------------------------------------------------------------------
+
+    private ResultActionsHolder nasList(String user, String body) throws Exception {
+        var request = post("/api/nas/list").contentType(MediaType.APPLICATION_JSON).content(body);
+        if (user != null) {
+            request = request.header("Authorization", bearer(user));
+        }
+        return new ResultActionsHolder(mvc.perform(request));
+    }
+
+    private record ResultActionsHolder(org.springframework.test.web.servlet.ResultActions actions) {
+    }
+
+    @Test
+    void browsingTheNasNeedsLoginThePermissionAndValidInput() throws Exception {
+        nasList(null, "{}").actions().andExpect(status().isUnauthorized());
+        nasList("mario", "{}").actions().andExpect(status().isForbidden());
+        for (String body : List.of("{\"path\":\"" + "x".repeat(1025) + "\"}", "{\"offset\":-1}", "{\"limit\":0}",
+                "{\"limit\":201}", "{\"path\":\"a\\u0000b\"}", "{\"offset\":\"abc\"}")) {
+            nasList("admin", body).actions().andExpect(status().isBadRequest());
+        }
+        assertThat(jdbc.queryForObject("select count(*) from command_outbox", Integer.class)).isZero();
+    }
+
+    @Test
+    void browsingTheNasIssuesASignedReadOnlyCommandWithNoModeInIt() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        MvcResult result = nasList("admin", "{\"path\":\"gare:/GARE 2025\",\"offset\":0,\"limit\":50}")
+                .actions().andExpect(status().isAccepted()).andReturn();
+        String id = json.readTree(result.getResponse().getContentAsString()).get("commandId").asString();
+        SignedCommand signed = expectCommand(edge);
+        assertThat(signed.command().id()).isEqualTo(id);
+        assertThat(signed.command().type()).isEqualTo("nas.list");
+        assertThat(signed.command().permissions()).containsExactly("SETTINGS_MANAGE");
+        assertThat(signed.command().payload()).contains("GARE 2025").doesNotContainIgnoringCase("mode");
+        CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
+        assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
+        assertThat(jdbc.queryForObject("select count(*) from audit_log where action = 'COMMAND_ISSUED'", Integer.class))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void aFolderListingIsErasedFromTheHubAfterAFewMinutesButOtherResultsStay() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        String nasId = json.readTree(nasList("admin", "{}").actions().andExpect(status().isAccepted()).andReturn()
+                .getResponse().getContentAsString()).get("commandId").asString();
+        String aiId = issueRefresh("admin");
+        edge.send(ChannelEnvelope.Kind.RESULT, new CommandResult(ContractVersion.CURRENT, nasId,
+                CommandResult.Status.SUCCEEDED, "{\"path\":\"\",\"entries\":[{\"name\":\"segreto.pdf\"}]}", null));
+        edge.send(ChannelEnvelope.Kind.RESULT, new CommandResult(ContractVersion.CURRENT, aiId,
+                CommandResult.Status.SUCCEEDED, "{\"models\":[],\"assignments\":{}}", null));
+        assertThat(awaitStatus(nasId, "SUCCEEDED")).isEqualTo("SUCCEEDED");
+        assertThat(awaitStatus(aiId, "SUCCEEDED")).isEqualTo("SUCCEEDED");
+
+        // fresh: the requester can read it, and the purge leaves it alone
+        assertThat(commands.purgeEphemeralResults()).isZero();
+        assertThat(commandStatus(nasId).get("result").toString()).contains("segreto.pdf");
+
+        jdbc.update("update command_result set received_at = now() - interval '3 minutes'");
+        assertThat(commands.purgeEphemeralResults()).isEqualTo(1);
+        JsonNode after = commandStatus(nasId);
+        assertThat(after.get("status").asString()).isEqualTo("SUCCEEDED");
+        assertThat(after.get("result").isNull()).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from command_result where result like '%segreto%'",
+                Integer.class)).isZero();
+        assertThat(commandStatus(aiId).get("result").get("models").isArray()).isTrue();
+    }
 }

@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 public class CommandService {
 
     private static final Logger log = LoggerFactory.getLogger(CommandService.class);
+    static final java.time.Duration EPHEMERAL_RESULT_TTL = java.time.Duration.ofMinutes(2);
 
     public record CommandView(String id, String type, String status, Instant createdAt, String result,
             String errorCode) {
@@ -166,6 +167,22 @@ public class CommandService {
                 .query((rs, n) -> new CommandView(rs.getString("id"), rs.getString("type"), rs.getString("status"),
                         rs.getTimestamp("created_at").toInstant(), rs.getString("result"), rs.getString("error_code")))
                 .optional();
+    }
+
+    /**
+     * Erases the result of commands whose result holds file names (see {@link CommandType#ephemeralResult()}) a
+     * few minutes after it arrived: the requester has had time to read it, the Hub keeps nothing of the NAS.
+     */
+    public int purgeEphemeralResults() {
+        String[] types = java.util.Arrays.stream(CommandType.values()).filter(CommandType::ephemeralResult)
+                .map(CommandType::code).toArray(String[]::new);
+        return jdbc.sql("""
+                update command_result r set result = null
+                from command_outbox o
+                where o.id = r.command_id and o.type = any(:types) and r.result is not null
+                  and r.received_at < :cutoff
+                """).param("types", types).param("cutoff", Timestamp.from(clock.instant().minus(EPHEMERAL_RESULT_TTL)))
+                .update();
     }
 
     private String nonce() {

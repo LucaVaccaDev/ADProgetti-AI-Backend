@@ -34,6 +34,7 @@ class ChannelConfig implements WebSocketConfigurer {
     @Scheduled(fixedDelayString = "${hub.channel.maintenance-interval:15s}")
     void maintenance() {
         commands.expireOld();
+        commands.purgeEphemeralResults();
         commands.deliverOpen(false);
     }
 }

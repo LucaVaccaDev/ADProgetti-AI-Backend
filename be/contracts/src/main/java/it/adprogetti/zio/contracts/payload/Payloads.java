@@ -26,6 +26,7 @@ public final class Payloads {
             case AI_MODEL_ASSIGN -> AiModelAssignPayload.class;
             case JOBS_RUN -> JobsRunPayload.class;
             case JOBS_CANCEL -> JobsCancelPayload.class;
+            case NAS_LIST -> NasListPayload.class;
         };
     }
 

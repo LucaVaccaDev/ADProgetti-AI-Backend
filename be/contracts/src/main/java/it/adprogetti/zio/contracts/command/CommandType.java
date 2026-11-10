@@ -13,14 +13,27 @@ public enum CommandType {
     AI_MODEL_TEST("ai.model.test", "SETTINGS_MANAGE"),
     AI_MODEL_ASSIGN("ai.model.assign", "SETTINGS_MANAGE"),
     JOBS_RUN("jobs.run", "SETTINGS_MANAGE"),
-    JOBS_CANCEL("jobs.cancel", "SETTINGS_MANAGE");
+    JOBS_CANCEL("jobs.cancel", "SETTINGS_MANAGE"),
+    /** Read-only listing of NAS folders. The result holds file names, so the Hub keeps it only briefly. */
+    NAS_LIST("nas.list", "SETTINGS_MANAGE", true);
 
     private final String code;
     private final String requiredPermission;
+    private final boolean ephemeralResult;
 
     CommandType(String code, String requiredPermission) {
+        this(code, requiredPermission, false);
+    }
+
+    CommandType(String code, String requiredPermission, boolean ephemeralResult) {
         this.code = code;
         this.requiredPermission = requiredPermission;
+        this.ephemeralResult = ephemeralResult;
+    }
+
+    /** True when the Hub must not keep the result: it is shown to the requester and then erased. */
+    public boolean ephemeralResult() {
+        return ephemeralResult;
     }
 
     public String code() {

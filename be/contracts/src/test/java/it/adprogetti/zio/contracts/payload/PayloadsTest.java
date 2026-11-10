@@ -87,4 +87,27 @@ class PayloadsTest {
         assertThat(Payloads.read(json, JobsSummaryProjection.class)).isEqualTo(summary);
         assertThat(json).doesNotContain("payload").doesNotContain("result");
     }
+
+    @Test
+    void nasListPayloadIsBoundedAndNeverCarriesAMode() {
+        assertThat(Payloads.parse(CommandType.NAS_LIST, "")).isEqualTo(new NasListPayload("", 0, 100));
+        assertThat(new NasListPayload("gare:/GARE 2025", 10, 5000).limit()).isEqualTo(NasListPayload.MAX_LIMIT);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.NAS_LIST, "{\"path\":\"a\",\"mode\":\"TENDER_WRITE\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.NAS_LIST, "{\"offset\":-1}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.NAS_LIST, "{\"path\":\"a\\u0000b\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.NAS_LIST, "{\"path\":\"" + "x".repeat(1025) + "\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+    }
+
+    @Test
+    void nasListResultRoundTripsAndOnlyNasListIsEphemeral() {
+        NasListResult result = new NasListResult("gare:/GARE 2025",
+                List.of(new NasListResult.Entry("Bando n°1 #2.pdf", false, 1234, "2025-03-01T10:00:00Z")), 1, false);
+        assertThat(Payloads.read(Payloads.write(result), NasListResult.class)).isEqualTo(result);
+        assertThat(CommandType.NAS_LIST.ephemeralResult()).isTrue();
+        assertThat(CommandType.AI_MODELS_LIST.ephemeralResult()).isFalse();
+    }
 }
