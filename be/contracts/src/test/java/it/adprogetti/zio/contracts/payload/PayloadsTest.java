@@ -110,4 +110,13 @@ class PayloadsTest {
         assertThat(CommandType.NAS_LIST.ephemeralResult()).isTrue();
         assertThat(CommandType.AI_MODELS_LIST.ephemeralResult()).isFalse();
     }
+
+    @Test
+    void externalAiTestCarriesNoParametersAndRejectsExtraFields() {
+        assertThat(Payloads.parse(CommandType.AI_FREELLMAPI_TEST, "")).isInstanceOf(AiExternalTestPayload.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.AI_FREELLMAPI_TEST, "{\"prompt\":\"hello\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        AiExternalTestResult result = new AiExternalTestResult(true, "groq/llama", 850, null);
+        assertThat(Payloads.read(Payloads.write(result), AiExternalTestResult.class)).isEqualTo(result);
+    }
 }

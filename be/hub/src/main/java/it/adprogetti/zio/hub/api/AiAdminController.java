@@ -1,6 +1,7 @@
 package it.adprogetti.zio.hub.api;
 
 import it.adprogetti.zio.contracts.command.CommandType;
+import it.adprogetti.zio.contracts.payload.AiExternalTestPayload;
 import it.adprogetti.zio.contracts.payload.AiFunction;
 import it.adprogetti.zio.contracts.payload.AiModelAssignPayload;
 import it.adprogetti.zio.contracts.payload.AiModelTestPayload;
@@ -85,6 +86,14 @@ class AiAdminController {
     ResponseEntity<CommandAccepted> refresh(Authentication auth, @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
         return accept(auth, jwt, request, CommandType.AI_MODELS_LIST, AiModelsListPayload::new);
+    }
+
+    /** Fixed harmless test of the external free provider (FreeLLMAPI) through the Edge; never carries user text. */
+    @PostMapping("/external/test")
+    @PreAuthorize("hasAuthority('SETTINGS_MANAGE')")
+    ResponseEntity<CommandAccepted> externalTest(Authentication auth, @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        return accept(auth, jwt, request, CommandType.AI_FREELLMAPI_TEST, AiExternalTestPayload::new);
     }
 
     @PostMapping("/models/test")

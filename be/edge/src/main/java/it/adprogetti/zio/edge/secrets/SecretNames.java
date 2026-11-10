@@ -8,6 +8,9 @@ public final class SecretNames {
     /** Ed25519 public key (Base64 X.509) used to verify Hub commands. */
     public static final String HUB_COMMAND_PUBLIC_KEY = "hub-command-public-key";
 
+    /** Unified FreeLLMAPI key ({@code freellmapi-...}): the only key the Edge holds for external AI (Allegato A.4). */
+    public static final String FREELLMAPI_KEY = "freellmapi-key";
+
     private SecretNames() {
     }
 }

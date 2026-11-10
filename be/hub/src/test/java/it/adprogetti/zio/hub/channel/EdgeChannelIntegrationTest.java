@@ -546,4 +546,27 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
                 Integer.class)).isZero();
         assertThat(commandStatus(aiId).get("result").get("models").isArray()).isTrue();
     }
+
+    // --- external AI test -------------------------------------------------------------------------
+
+    @Test
+    void theExternalAiTestNeedsLoginAndThePermissionAndCarriesNoText() throws Exception {
+        mvc.perform(post("/api/ai/external/test")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/ai/external/test").header("Authorization", bearer("mario"))).andExpect(status().isForbidden());
+        assertThat(jdbc.queryForObject("select count(*) from command_outbox", Integer.class)).isZero();
+
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        MvcResult result = mvc.perform(post("/api/ai/external/test").header("Authorization", bearer("admin"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"prompt\":\"anything\"}"))
+                .andExpect(status().isAccepted()).andReturn();
+        String id = json.readTree(result.getResponse().getContentAsString()).get("commandId").asString();
+        SignedCommand signed = expectCommand(edge);
+        assertThat(signed.command().id()).isEqualTo(id);
+        assertThat(signed.command().type()).isEqualTo("ai.freellmapi.test");
+        assertThat(signed.command().permissions()).containsExactly("SETTINGS_MANAGE");
+        assertThat(signed.command().payload()).doesNotContain("anything");
+        CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
+        assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
+    }
 }

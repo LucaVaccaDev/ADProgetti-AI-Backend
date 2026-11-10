@@ -35,6 +35,7 @@ import org.testcontainers.utility.DockerImageName;
         "edge.hub.reconnect-max=400ms",
         "edge.heartbeat-interval=500ms",
         "edge.secrets.store=test",
+        "edge.ai.freellmapi.daily-limit-per-user=3",
         "edge.jobs.workers=3",
         "edge.jobs.poll-interval=50ms",
         "edge.jobs.lease=1s",
@@ -52,6 +53,7 @@ public abstract class EdgeIntegrationTestBase {
             DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
 
     protected static final StubOllama OLLAMA;
+    protected static final StubFreeLlmApi FREELLM;
 
     /** A fake NAS on the local disk: four shares, one share that is not mounted, and a folder outside them. */
     protected static final java.nio.file.Path NAS;
@@ -69,6 +71,7 @@ public abstract class EdgeIntegrationTestBase {
         POSTGRES.start();
         try {
             OLLAMA = new StubOllama();
+            FREELLM = new StubFreeLlmApi();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -83,6 +86,7 @@ public abstract class EdgeIntegrationTestBase {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("server.port", () -> PORT);
         registry.add("edge.ai.ollama-url", OLLAMA::url);
+        registry.add("edge.ai.freellmapi.url", FREELLM::url);
         for (String share : new String[] { "archivio", "gare", "documenti", "temporanea" }) {
             registry.add("edge.nas.shares." + share + ".mount", () -> NAS.resolve(share).toString());
         }
@@ -129,6 +133,7 @@ public abstract class EdgeIntegrationTestBase {
         SecretStore testSecretStore() {
             InMemorySecretStore store = new InMemorySecretStore();
             store.put(SecretNames.HUB_EDGE_KEY, EDGE_KEY);
+            store.put(SecretNames.FREELLMAPI_KEY, "freellmapi-test-key");
             store.put(SecretNames.HUB_COMMAND_PUBLIC_KEY,
                     Base64.getEncoder().encodeToString(HUB_KEYS.getPublic().getEncoded()));
             return store;
