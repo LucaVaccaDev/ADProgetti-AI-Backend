@@ -16,7 +16,9 @@ public enum CommandType {
     JOBS_RUN("jobs.run", "SETTINGS_MANAGE"),
     JOBS_CANCEL("jobs.cancel", "SETTINGS_MANAGE"),
     /** Read-only listing of NAS folders. The result holds file names, so the Hub keeps it only briefly. */
-    NAS_LIST("nas.list", "SETTINGS_MANAGE", true);
+    NAS_LIST("nas.list", "SETTINGS_MANAGE", true),
+    /** Search in the document index. The result holds document excerpts, so the Hub keeps it only briefly. */
+    DOCS_SEARCH("docs.search", "SETTINGS_MANAGE", true);
 
     private final String code;
     private final String requiredPermission;

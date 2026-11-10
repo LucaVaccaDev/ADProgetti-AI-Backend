@@ -36,6 +36,7 @@ import org.testcontainers.utility.DockerImageName;
         "edge.heartbeat-interval=500ms",
         "edge.secrets.store=test",
         "edge.ai.freellmapi.daily-limit-per-user=3",
+        "edge.docs.index-roots[0]=documenti:/docs-index",
         "edge.jobs.workers=3",
         "edge.jobs.poll-interval=50ms",
         "edge.jobs.lease=1s",

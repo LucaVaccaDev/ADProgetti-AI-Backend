@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 class JobsRunHandler implements CommandHandler {
 
     /** Types an administrator may start by hand. PROTOCOL_RUN joins this list with the protocol module. */
-    static final Set<String> MANUAL_TYPES = Set.of(SystemSelfCheckHandler.TYPE);
+    static final Set<String> MANUAL_TYPES = Set.of(SystemSelfCheckHandler.TYPE, "INDEX_NAS");
     static final int MANUAL_PRIORITY = 7;
 
     private final JobService jobs;
@@ -49,7 +49,7 @@ class JobsRunHandler implements CommandHandler {
         }
         String resource = props.schedules().entrySet().stream()
                 .filter(e -> jobType.equals(e.getValue().type())).map(java.util.Map.Entry::getKey).findFirst()
-                .orElse(null);
+                .orElse("INDEX_NAS".equals(jobType) ? "index-nas" : null); // one indexing run at a time
         JobService.Enqueued queued = jobs.enqueue(new JobService.Request(jobType, null, null,
                 "manual:" + command.id(), resource, MANUAL_PRIORITY, null, command.requestedBy()));
         audit.record("JOB_RUN", jobType + " " + queued.id(), EdgeAudit.SUCCESS, "by " + command.requestedBy());

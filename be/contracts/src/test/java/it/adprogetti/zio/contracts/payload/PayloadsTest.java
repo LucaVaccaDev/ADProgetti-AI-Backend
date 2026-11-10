@@ -119,4 +119,20 @@ class PayloadsTest {
         AiExternalTestResult result = new AiExternalTestResult(true, "groq/llama", 850, null);
         assertThat(Payloads.read(Payloads.write(result), AiExternalTestResult.class)).isEqualTo(result);
     }
+
+    @Test
+    void docsSearchPayloadIsBoundedAndEphemeral() {
+        assertThat(Payloads.parse(CommandType.DOCS_SEARCH, "")).isEqualTo(new DocsSearchPayload("", null));
+        assertThat(new DocsSearchPayload("  copriferro  ", 500)).isEqualTo(new DocsSearchPayload("copriferro", 20));
+        assertThatThrownBy(() -> Payloads.parse(CommandType.DOCS_SEARCH, "{\"query\":\"" + "x".repeat(301) + "\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.DOCS_SEARCH, "{\"query\":\"a\\nb\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThatThrownBy(() -> Payloads.parse(CommandType.DOCS_SEARCH, "{\"query\":\"a\",\"path\":\"gare:/\"}"))
+                .isInstanceOf(InvalidPayloadException.class);
+        assertThat(CommandType.DOCS_SEARCH.ephemeralResult()).isTrue();
+        DocsSearchResult result = new DocsSearchResult(List.of(new DocsSearchResult.Hit("gare:/GARE 2025/a.pdf", 2, 3,
+                "…", 0.8)), true, new DocsSearchResult.Stats(10, 8, 1, 1, 0, 0, 120, "2026-11-10T10:00:00Z", "COMPLETED"));
+        assertThat(Payloads.read(Payloads.write(result), DocsSearchResult.class)).isEqualTo(result);
+    }
 }

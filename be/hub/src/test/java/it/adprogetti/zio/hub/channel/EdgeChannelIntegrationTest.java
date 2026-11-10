@@ -569,4 +569,45 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
         assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
     }
+
+    // --- docs.search ------------------------------------------------------------------------------
+
+    @Test
+    void searchingDocumentsNeedsLoginThePermissionAndValidInput() throws Exception {
+        mvc.perform(post("/api/docs/search").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/docs/search").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
+        for (String body : List.of("{\"query\":\"" + "x".repeat(301) + "\"}", "{\"limit\":0}", "{\"limit\":21}",
+                "{\"query\":\"a\\nb\"}", "{\"limit\":\"abc\"}")) {
+            mvc.perform(post("/api/docs/search").header("Authorization", bearer("admin"))
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        }
+        assertThat(jdbc.queryForObject("select count(*) from command_outbox", Integer.class)).isZero();
+    }
+
+    @Test
+    void aDocumentSearchIsASignedCommandAndItsExcerptsAreErasedAfterAFewMinutes() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        MvcResult accepted = mvc.perform(post("/api/docs/search").header("Authorization", bearer("admin"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"query\":\"copriferro\",\"limit\":5}"))
+                .andExpect(status().isAccepted()).andReturn();
+        String id = json.readTree(accepted.getResponse().getContentAsString()).get("commandId").asString();
+        SignedCommand signed = expectCommand(edge);
+        assertThat(signed.command().id()).isEqualTo(id);
+        assertThat(signed.command().type()).isEqualTo("docs.search");
+        assertThat(signed.command().permissions()).containsExactly("SETTINGS_MANAGE");
+        CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
+        assertThat(verifier.verify(signed)).isEqualTo(VerificationResult.OK);
+
+        edge.send(ChannelEnvelope.Kind.RESULT, new CommandResult(ContractVersion.CURRENT, id,
+                CommandResult.Status.SUCCEEDED, "{\"hits\":[{\"path\":\"gare:/x.pdf\",\"snippet\":\"testo segreto del documento\"}]}", null));
+        assertThat(awaitStatus(id, "SUCCEEDED")).isEqualTo("SUCCEEDED");
+        assertThat(commandStatus(id).get("result").toString()).contains("testo segreto");
+        jdbc.update("update command_result set received_at = now() - interval '3 minutes'");
+        assertThat(commands.purgeEphemeralResults()).isEqualTo(1);
+        assertThat(commandStatus(id).get("result").isNull()).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from command_result where result like '%segreto%'", Integer.class)).isZero();
+    }
 }

@@ -21,6 +21,13 @@
 			<artifactId>contracts</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- PDF text extraction (Apache 2.0, maintained). Chosen over the Homebrew pdftotext binary because the Edge
+		     user cannot maintain Homebrew packages; no JavaScript is run and no network is used. -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.5</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
