@@ -4,12 +4,12 @@ Va nella radice del repository `ad-progetti-ai-hub/`. Claude Code lo legge a ogn
 
 ## 1. Specifica di riferimento e precedenze
 
-La specifica funzionale completa è il capitolato unico **v1.1** (04/11/2026) in `docs/capitolato/Capitolato_Progetto_Zio_Pino_v1.1.md`; contiene anche grafica (Parte 2) e menu/pagine (Parte 3). La v1.0 (`Capitolato_Progetto_Zio_Pino.txt`) resta solo come storico. I materiali del committente sono in `docs/materiali/` e sono in **sola lettura**.
+La specifica funzionale completa è il capitolato unico **v1.2** (11/11/2026) in `docs/capitolato/Capitolato_Progetto_Zio_Pino_v1.2.md`; contiene anche grafica (Parte 2, `docs/GRAFICA.md` 1.2) e menu/pagine (Parte 3, `docs/MENU_E_PAGINE.md` 1.2). La v1.1 e la v1.0 restano solo come storico. Riferimento visivo vincolante: `docs/schermate/`. I materiali del committente sono in `docs/materiali/` e sono in **sola lettura**.
 
 In caso di contrasto vale questo ordine:
 
 1. Le **deviazioni D-01…D-08** qui sotto (decise dal committente dopo il capitolato).
-2. Gli Allegati **E (Gare)** e **D (Email IMAP Aruba)** del capitolato v1.1.
+2. L'Allegato **F** del capitolato v1.2 (grafica definitiva, fattibilità gare, anteprima protocollo, scadenze dalle email, hardware di produzione), poi gli Allegati **E (Gare)** e **D (Email IMAP Aruba)**.
 3. Gli Allegati C, B, A e le sezioni 27–33.
 4. Il resto del capitolato.
 
@@ -117,4 +117,4 @@ File richiesti dall'esterno (anteprima di un allegato o di un documento): solo *
 
 ## 10. Lingua e interfaccia
 
-Interfaccia e documentazione in italiano. Codice, nomi, commit in inglese. Riferimento grafico: `docs/design/AD-Progetti-AI-Hub-DEMO.html` (sei accessi agli assistenti AI, sez. 1.1). Mai dati simulati presentati come reali (sez. 39).
+Interfaccia e documentazione in italiano. Codice, nomi, commit in inglese. Riferimento grafico: `docs/GRAFICA.md` 1.2 e `docs/schermate/` (lo stile Bento della v1.1 è superato, Allegato F.1); la demo `docs/design/AD-Progetti-AI-Hub-DEMO.html` resta solo per i sei accessi agli assistenti AI (sez. 1.1). Mai dati simulati presentati come reali (sez. 39).

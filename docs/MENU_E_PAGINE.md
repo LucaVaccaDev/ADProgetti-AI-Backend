@@ -1,161 +1,119 @@
-# Progetto Zio Pino – Menu e contenuto delle pagine (vincolante)
+# Progetto Zio Pino – Menu e contenuto delle pagine (vincolante) · versione 1.2
 
-Da usare insieme a `docs/GRAFICA.md` (stile, colori, componenti) e al capitolato.
-Riferimento visivo: `docs/materiali/riferimento_grafica_panoramica.png`.
-Tutti i dati mostrati negli esempi (nomi, commesse, importi) sono segnaposto: in produzione arrivano dal database.
+Sostituisce la versione 1.1. Da usare insieme a `docs/GRAFICA.md` (versione 1.2) e al capitolato (Allegato F).
+Riferimento visivo: `docs/schermate/01-Panoramica.png` … `10-Scheda-gara.png` e `00_Panoramica_di_tutte_le_pagine.png`.
+Tutti i dati mostrati nelle schermate (nomi, commesse, importi, CIG) sono segnaposto: in produzione arrivano dal database.
 
 ---
 
 ## 1. Struttura generale
 
-- **Menu laterale** fisso a sinistra (vetro satinato, vedi GRAFICA.md §5.1), uguale in tutte le pagine.
-- **Intestazione** in alto a ogni pagina: percorso/categoria (12 px muted), titolo, azioni della pagina a destra.
-- Nella sola Panoramica l’intestazione mostra saluto, ricerca globale, notifiche e utente loggato.
+- **Barra laterale** trasparente, apribile/chiudibile, uguale in tutte le pagine (GRAFICA.md §4).
+- **Intestazione** di ogni pagina: titolo e sottotitolo a sinistra; a destra solo data e notifiche.
 - Ogni pagina rispetta i permessi del capitolato (C.2): ciò che l’utente non può vedere non compare.
 
----
+## 2. Barra laterale
 
-## 2. Menu laterale
-
-Dall’alto verso il basso:
-
-1. **Logo**: cerchio blu AD (#004890) con le sole lettere "AD" bianche, centrato. Clic → Panoramica.
-2. **AI Alfonzo**: pillola piccola sotto il logo: "AI" in blu + "Alfonzo" con **la sola lettera z specchiata**. Clic → apre la chat con Alfonzo (Ricerca e chat).
-3. **Assistenti** (etichetta di sezione):
-   - Panoramica
-   - Segreteria
-   - Gare
-   - BIM
-   - Foto
-   - Ricerca e chat
-4. **Studio** (etichetta di sezione):
-   - Calendario
-   - Commesse
-   - Amministrazione (visibile solo ad amministratore e ruoli autorizzati)
-5. **Utenti online · N di M**: elenco degli utenti collegati (avatar con iniziali, pallino blu online / grigio inattivo, nome, sezione dell’app in cui si trova). Massimo 6 visibili, poi "e altri N".
-6. In fondo: **Quota AI online del mese** dell’utente (barra + "38% usato · 21% a fine ottobre").
-
-Voce attiva: pillola blu piena con testo bianco. Icone a linea per le voci "Assistenti"; solo testo per "Studio".
+1. Logo AD (cerchio blu) + "Zio Pino · AD Progetti srl". Clic → Panoramica.
+2. Campo **Cerca…** (ricerca globale: commesse, gare, email, protocolli, documenti).
+3. **Menu**: Panoramica · Segreteria (contatore: email da protocollare/verificare) · Gare (contatore: gare compatibili nuove) · BIM · Foto · Ricerca e chat.
+4. **Studio**: Calendario (contatore: impegni di oggi) · Commesse · Amministrazione (solo ruoli autorizzati).
+5. In fondo: **Chiedi ad Alfonzo** (apre una nuova chat in Ricerca e chat) · **Quota AI online** del mese dell’utente · **utente collegato** (avatar, nome, ruolo, stato).
 
 ---
 
-## 3. Panoramica (pagina iniziale)
+## 3. Panoramica (pagina iniziale) — schermata 01
 
-1. **Intestazione**: data del giorno; titolo "Buongiorno / Buon pomeriggio / Buonasera, <Nome Cognome dell’utente loggato>"; a destra ricerca globale (pillola), pulsante notifiche, utente loggato (avatar blu con iniziali + nome + ruolo).
-2. **Barra "Da ieri"** (riquadro blu pieno): novità dall’ultimo accesso (nuovi protocolli, FAQ di gara, scadenze spostate, script BIM confermati…) + scorciatoie: "Nuovo appuntamento", "Carica gara", "Apri modellazione BIM" (quest’ultimo pulsante bianco).
-3. **Calendario mensile** (riquadro largo, al centro): giorni con impegni cerchiati (azzurro con numero blu) e "N impegni" sotto; oggi in cerchio blu pieno; giorno selezionato evidenziato; frecce mese precedente/successivo; filtro "Solo i miei / Tutto lo studio"; conteggio impegni del mese con confronto mese precedente.
-4. **Impegni del mese** (accanto al calendario): elenco con data, icona del tipo (DL, appuntamento, gara, amministrazione), titolo e dettaglio; clic su un giorno del calendario → mostra solo quel giorno; link "Apri calendario".
-5. **Tre numeri del giorno**: Email da verificare (primo riquadro, blu pieno), Gare nuove da valutare, Le tue attività aperte — ognuno con confronto.
-6. **Tre elenchi**: Le tue commesse (fase, barra di avanzamento, prossimo passo) · Gare in corso (scadenza e stato) · Ultimi protocolli (numero e descrizione).
-7. **Riga Sistema** (solo amministratore): NAS, AI locale, caselle email IMAP (N di 6 connesse), registro Excel, consumo AI online dello studio.
+1. **Intestazione lilla** con saluto "Buongiorno / Buon pomeriggio / Buonasera <Nome>." e riepilogo del giorno in una frase (email da protocollare al prossimo orario, gare in scadenza nella settimana, soccorsi istruttori aperti); bottone "Vedi cosa fare oggi".
+2. Tre schede in riga:
+   - **Utenti online**: avatar con iniziali, pallino verde/grigio, nome, ruolo/sezione.
+   - **Protocolli della settimana**: numero + confronto con la settimana precedente + barre per giorno.
+   - **Gare compatibili**: numero + confronto + riepilogo "in preparazione / presentate / soccorso istruttorio".
+3. **Nuove gare per lo studio**: le 3 più rilevanti come schede gara con **indicatore di fattibilità** (GRAFICA.md §5.8); link "Tutte le gare".
+4. Colonna destra:
+   - **Settimana** (mese corrente, frecce) con oggi evidenziato e pallini sui giorni con impegni; sotto **In arrivo · 7 giorni** (offerte, SAL, soccorsi istruttori, sopralluoghi…).
+   - **Prossimo protocollo** (orario 14:30 o 18:30): "Anteprima pronta alle 14:15 · conferma in un clic"; quante in arrivo/inviate, PEC, da verificare; quante in quarantena.
+5. Solo amministratore: in fondo una riga **Sistema** (NAS, AI locale, caselle email, registro Excel, uso AI online).
 
-Il contenuto si adatta al ruolo: chi segue la DL vede prima le proprie commesse e scadenze; il responsabile gare vede le gare da valutare.
+Il contenuto si adatta al ruolo (DL: prima le proprie commesse e scadenze; responsabile gare: prima le gare).
 
 ---
 
-## 4. Segreteria
+## 4. Segreteria — schermata 02
 
-**Intestazione**: "Segreteria › Protocollo"; azioni "Registro Excel", "Protocolla ora".
+**Schede**: **Anteprima 14:30** (o 18:30, la prossima) · Protocollate · Da verificare · Quarantena · Registro. Sotto-sezioni secondarie: Non associate · Escluse · Annullati · Commesse e fasi da attivare · Interlocutori per fase · Newsletter e disiscrizioni · Mittenti protetti · Recupero pregresso.
 
-**Schede** (sottolineate, con conteggio):
-- **Da verificare** – email che l’AI non ha protocollato da sola: per ognuna tipo (ricevuta/inviata), casella, data, confidenza e soglia, oggetto, mittente/destinatari, **proposta** (commessa › fase), motivazione, percorso della cartella sul NAS; pulsanti "Conferma e protocolla", "Cambia commessa o fase", "Non protocollare".
-- **Protocollate oggi** – elenco con numero (formato `N_AAAA_MM_GG_CR/CI`), commessa, fase, oggetto.
-- **Non associate** – email esterne non legate a commesse attivate, con eventuale proposta.
-- **Escluse** – email non protocollate con il motivo (es. interne tra colleghi).
-- **Quarantena** – email spostate per spam: mittente, oggetto, casella, motivo, giorni rimanenti all’eliminazione (30); pulsanti "Recupera" e "Elimina subito"; filtro per casella.
-- **Annullati** – protocolli annullati con utente, data e motivo.
-
-**Colonna a destra**: Elaborazioni di oggi (14:30 e 18:30 con esiti, media giornaliera con confronto) · Ultimi protocolli.
-
-**Altre sezioni della Segreteria** (sotto-menu o schede secondarie): Commesse e fasi da attivare · Interlocutori per fase · Newsletter e disiscrizioni proposte · Mittenti protetti · Recupero pregresso (una commessa alla volta).
+- **Anteprima del protocollo** (Allegato F.3): tabella con tipo (PEC / Email / Inviata), mittente e oggetto, **commessa proposta**, **numero** che verrà assegnato (`N_AAAA_MM_GG_CR/CI`), stato (Pronta · Collegata alla gara · Da verificare · Quarantena). Bottone **"Conferma protocollo"**; nota "Si annulla entro un’ora".
+- **Da verificare**: per ogni email proposta (commessa › fase), motivazione, confidenza, percorso NAS; "Conferma e protocolla", "Cambia commessa o fase", "Non protocollare".
+- **Quarantena**: mittente, oggetto, casella, motivo, giorni rimanenti (30); "Recupera", "Elimina subito".
+- Colonna destra:
+  - **Caselle email**: una riga per casella (connessa, ultimo controllo; PEC "sola lettura"), etichetta "N di 6 connesse".
+  - **Scadenza trovata da Alfonzo** (Allegato F.4): frase trovata nella comunicazione, data proposta, commessa; bottone "Aggiungi al calendario".
 
 ---
 
 ## 5. Gare
 
-### 5.1 Prima pagina: "Gare a cui puoi partecipare"
-- **Intestazione**: titolo, "N nuove compatibili questa settimana · M la settimana scorsa · aggiornato alle HH:MM"; azioni "Gare in preparazione N", "Carica gara".
-- **Filtri** (schede): Tutte le compatibili · Da solo · Con RTP · Da verificare · Appalti integrati su segnalazione · Scartate.
-- **Scheda gara** (una per gara):
-  1. Riga dati: stato (nuova, data pubblicazione), ente, CIG; titolo; procedura, criterio, ID opere; a destra **Importo servizi**, **Scadenza** (con "tra N giorni"), **Compatibilità %**.
-  2. **Requisiti**: un’etichetta per requisito con importo disponibile e richiesto (es. "E.08 · 12,46 M€ su [richiesto]") e pallino: grigio = soddisfatto da solo, blu = serve RTP, scuro = da verificare; sotto una riga di spiegazione (equivalenze, mancanze).
-  3. **Come partecipare** (riquadro a destra): **Da solo** / **In RTP** (con partner suggerito dalla rete partner) / **Progettista indicato** o **associato** (appalti integrati) / **Da verificare** (cosa chiarire), con punteggio stimato.
-  4. Pulsanti: "Partecipa e prepara", "Vedi analisi completa", "Scarta".
-- Le gare individuate sono visibili solo al responsabile gare; le gare assegnate anche agli assegnatari.
+### 5.1 Prima pagina — schermata 03
+- **Filtri**: Tutte · Compatibili · Da verificare · Appalti integrati · Scartate; bottoni "Filtri" e **"Inserisci gara"**.
+- **Griglia di schede gara** (GRAFICA.md §5.9) con: etichetta di tipo (OEPV, Prezzo più basso, Appalto integrato, Tempo stretto · N gg, Analisi incompleta), etichetta di stato, **indicatore di fattibilità** colorato secondo Allegato F.2, titolo, ente, importo servizi, scadenza, ID opere, icone "apri" e "salva", **Probabilità storica** (Allegato E.1).
+- Colonna destra: **Stato gare** (Individuate oggi · In analisi · In preparazione · Presentate · Soccorso istruttorio, con numero e barra) e riquadro blu **"Alfonzo · ricerca di stanotte"** (pubblicazioni analizzate, quante superano il prefiltro, quante compatibili, gare con documenti da caricare a mano).
+- Il sistema **non propone partner o RTP**: indica solo cosa manca e di quanto (Allegato E.1).
+- Le gare individuate sono visibili solo al responsabile gare; quelle assegnate anche agli assegnatari.
 
-### 5.2 Dopo "Partecipa e prepara": spazio di lavoro della gara (G_XX)
-- **Intestazione**: percorso "Gare › In preparazione › G_XX", titolo, ente, CIG, criterio, modalità (da solo/RTP), scadenza; selettore **Carta intestata**; pulsante "Chiedi ad Alfonzo".
-- **Avanzamento in 8 fasi**: Analisi · Requisiti · Criteri · Amministrativa · Offerta tecnica · Economica · Verifica · Archivio NAS.
-- **Lavori da fare**: elenco compiti con stato, dettaglio, responsabile e azione (Rivedi, Apri matrice, Verifica i campi, Apri bozza, Apri editor, Simula).
-- **Alfonzo ha già preparato**: elenco delle azioni automatiche (documenti scaricati, spazio creato, scadenze in calendario, offerte simili trovate, DGUE compilato, controllo FAQ attivato).
-- **Gruppo di lavoro** (persone e ruoli, "Aggiungi persona") e **Punteggio stimato** (con confronto con gara simile).
+### 5.2 Scheda gara — schermata 10
+- **Intestazione lilla**: etichette tipo, CIG, scadenza; titolo; ente, importo servizi, ripartizione punteggi.
+- **Schede**: Riepilogo · Criticità · Requisiti · Punteggio · Offerta tecnica · Amministrativa · Invio.
+- **Criticità** (Allegato E.2): livello ALTA/MEDIA/BASSA, titolo, spiegazione, fonte (documento, pagina, articolo), azione ("Bozza quesito" / "Spunto offerta"); riquadro giallo per i documenti **non scaricabili** con bottone "Carica".
+- Colonna destra: **Punteggio stimato** (anello con totale, tecnica con suggerimento, economica con ribasso ed equilibrio, zona di anomalia) e **Requisiti** (soddisfatto / mancante con importo / da verificare con scadenza).
 
-### 5.3 Scheda di analisi completa della gara
-Schede: Requisiti (tabella requisito / richiesto / disponibile / esito) · Criteri e punteggi · Busta amministrativa · Offerta tecnica (editor nella Web App) · Offerta economica (simulazione ribassi) · FAQ e rettifiche · Concorrenti (dati pubblici ANAC).
+### 5.3 Spazio di lavoro della gara (dopo "Partecipa e prepara")
+- Percorso "Gare › In preparazione › G_XX", ente, CIG, criterio, scadenza, selettore **Carta intestata**.
+- **Avanzamento in 8 fasi**: Analisi · Requisiti · Criteri · Amministrativa · Offerta tecnica · Economica · Verifica e invio · Archivio NAS.
+- **Lavori da fare** (compito, stato, responsabile, azione) · **Alfonzo ha già preparato** (azioni automatiche svolte) · **Gruppo di lavoro** · **Pacchetto pronto da caricare** e **verifica firme** (Allegato E.5).
 
 ### 5.4 Altre sezioni Gare
-Gare in preparazione · Archivio storico (gare partecipate, esiti, punteggi) · Referenze e certificazioni (dal file Excel dello studio, con differenze all’ultimo import) · Rete partner · Carte intestate.
+Gare in preparazione · Presentate ed esiti (Allegato E.6) · Archivio storico · Referenze e certificazioni · Professionisti e abilitazioni · Documenti dello studio con scadenze (Allegato E.3) · Rete partner (solo archivio consultabile) · Carte intestate.
 
 ---
 
-## 6. BIM
+## 6. BIM — schermata 04
 
-- **Intestazione**: "BIM · Modellazione impianti"; selettore Commessa.
-- **Riquadro principale**: stato della postazione (PC, Revit 2027 aperto, rvt-mcp attivo); testo "Apri Claude sul progetto AD BIM – Modellazione"; pulsanti **"Modellazione BIM"** (apre Claude Desktop/claude.ai sul progetto condiviso del Team) e **"Copia contesto commessa"**.
-- **Contesto commessa**: modello di lavoro, modelli di riferimento in sola lettura, scheda regole (pendenze, giochi, quote di posa), esclusioni.
-- **Tre numeri**: elementi creati nella settimana · prove senza anomalie · connettori aperti (con confronto).
-- **Registro operazioni** (da `BIM_AI\registro` sul NAS): data, modalità (Prova/Definitivo), etichetta e descrizione, utente.
+- **Intestazione lilla**: stato della postazione (PC, Revit 2027 aperto, rvt-mcp attivo), "Modellazione impianti con Claude", commessa e modello di lavoro; bottoni **"Modellazione BIM"** (apre Claude sul progetto condiviso del Team) e "Copia contesto commessa".
+- **Tre numeri con confronto**: elementi creati nella settimana · prove senza anomalie · connettori aperti.
+- **Registro operazioni** (NAS › BIM_AI › registro): data, modalità (Prova / Definitivo), etichetta AI_* e descrizione, utente.
+- Colonna destra: **Contesto commessa** (modello di lavoro, riferimenti in sola lettura, scheda regole, esclusioni) e riquadro blu **"Regola dello studio"** (prima PROVA, poi DEFINITIVO annullabile in un passo).
 
----
+## 7. Foto — schermata 05
 
-## 7. Foto
-
-- **Intestazione**: "Foto · Ritocco rapido"; azioni "Fotoinserimento", "Carica foto".
-- **Confronto**: foto originale (mai modificata) e anteprima ritoccata affiancate, con nome del nuovo file; pulsanti "Salva in FOTO_AI", "Rifai", "Scarta".
-- **Operazioni**: caselle (luce ed esposizione, colore, raddrizza verticali, rimuovi oggetti, cielo più pulito) + istruzioni libere + "Elabora".
-- **Quota immagini del mese** con confronto e avviso: "La foto viene inviata a servizi AI online gratuiti, senza posizione GPS né metadati".
+- **Confronto**: originale (mai modificata) e anteprima ritoccata affiancate, nome del nuovo file; "Salva in FOTO_AI", "Rifai", "Scarta".
+- Colonna destra: **Operazioni** (luce ed esposizione, raddrizza verticali, cielo più pulito, colore, rimuovi oggetti) + istruzioni libere + "Elabora"; **Quota immagini del mese** con confronto e avviso "La foto viene inviata a servizi AI online gratuiti, senza posizione GPS né metadati".
 - **Ultime elaborazioni**: data, descrizione, cartella di destinazione.
 
----
+## 8. Ricerca e chat (Alfonzo) — schermata 06
 
-## 8. Ricerca e chat (Alfonzo)
+- Colonna conversazioni: "Nuova chat", elenco personale per data (Oggi, Settimana scorsa…), rinominabile ed eliminabile dal proprietario.
+- Conversazione: titolo; selettore **"Archivio studio · AI locale" / "Ricerca generale · online"**; domanda (bolla blu) e risposta con riferimenti numerati e **Fonti** (protocollo o percorso NAS), cliccabili.
+- Campo di scrittura a pillola con allegato e invio; nota "Le chat sono personali: nessun altro utente le vede, amministratore compreso".
 
-- **Intestazione**: titolo della conversazione; selettore **"Archivio studio · AI locale" / "Ricerca generale · online"**.
-- **Colonna conversazioni**: "Nuova chat", elenco personale raggruppato per data (Oggi, Settimana scorsa…), rinominabile ed eliminabile dal proprietario.
-- **Conversazione**: domanda dell’utente; risposta di Alfonzo con riferimenti numerati [1], [2]…; **Fonti** in fondo (titolo documento e numero di protocollo o percorso), cliccabili.
-- **Campo di scrittura** a pillola con pulsante di invio; possibilità di allegare file e immagini.
-- Nessuna chat è visibile ad altri utenti, amministratore compreso.
+## 9. Calendario — schermata 07
 
----
+Viste Giorno / Settimana / **Mese**; filtro "Solo i miei / Tutto lo studio"; legenda per tipo (DL, Gare, Appuntamenti, Amministrazione); bottone "Nuovo impegno"; conteggio impegni del mese con confronto. Ogni evento è collegato a commessa e protocollo di origine, con storico delle modifiche.
 
-## 9. Calendario
+## 10. Commesse — schermata 08
 
-Vista mese / settimana / giorno; filtri "Solo i miei / Tutto lo studio" e per tipo (DL, appuntamenti, gare, amministrazione); creazione e modifica manuale; ogni evento collegato a commessa e protocollo di origine; storico delle modifiche (spostamenti, annullamenti).
+Filtri Tutte · Attivate · Da attivare · Chiuse; bottone "Rileva dal NAS". Tabella: codice, commessa, fase, responsabile, avanzamento, prossimo passo, stato (Attivata · Da attivare · Post-chiusura). Colonna destra: commesse attive e scadenze a 30 giorni (con confronto), elenco **Da attivare** con bottone "Attiva". La scheda della commessa resta quella del capitolato (fasi, interlocutori, protocolli, scadenze e sospensioni DL, documenti, foto, registro BIM, attività post-chiusura).
 
----
+## 11. Amministrazione — schermata 09
 
-## 10. Commesse
-
-Elenco commesse rilevate dal NAS (attivate / non attivate) con fase, responsabile, avanzamento; scheda commessa con fasi (PFTE, Esecutivo, DL), interlocutori per fase, protocolli, scadenze e sospensioni DL, documenti, foto, registro BIM, attività e attività post-chiusura; azione "Attiva protocollo" per fase.
-
----
-
-## 11. Amministrazione
-
-- **Utenti e ruoli** (amministratore, collaboratore, responsabile DL, responsabile gare, amministratore BIM, abilitati protocollo/referenze).
-- **Utenti online** (dettaglio con ultimo accesso).
-- **Caselle email** (una per casella: connessa, ultimo controllo, messaggi acquisiti, errori).
-- **Modelli AI**: modelli installati, memoria, assegnazione modello → funzione, test rapido, ripristino.
-- **FreeLLMAPI e quote**: gruppi TESTO/IMMAGINI, riserva mensile, ripartizione dinamica per utente con proposta di ricalcolo mensile.
-- **NAS e percorsi**, cartelle escluse (vuoto), file certificazioni.
-- **Carte intestate**, modelli Word, registro Excel.
-- **Backup** (ultimo backup NAS ed esterno, prove di ripristino).
-- **Registro d’uso AI e audit** (senza contenuto delle chat).
+Schede: Panoramica · Utenti e ruoli · Modelli AI · Quote AI online · NAS e percorsi · Carte intestate · Backup · Registro d’uso.
+Panoramica: tre numeri con confronto (utenti attivi, richieste AI della settimana, uso AI online); **Utenti e ruoli** (nome, ruolo, ultimo accesso, "Aggiungi utente"); **Stato del sistema** (NAS, caselle email, AI locale con memoria in uso, backup); **Quote AI online** per persona.
+Contenuto delle altre schede come capitolato (utenti online, caselle email, modelli AI, FreeLLMAPI e quote dinamiche, NAS e file certificazioni, carte intestate e modelli, backup e prove di ripristino, registro d’uso e audit senza contenuto delle chat).
 
 ---
 
 ## 12. Testi fissi dell’interfaccia
 
-- Nome dell’app: **Progetto Zio Pino** (nome provvisorio, nel titolo della finestra e nella PWA).
-- Nome dell’assistente: **Alfonzo**, sempre con la z; nel logotipo la z è specchiata. Pulsanti e messaggi: "Chiedi ad Alfonzo", "Alfonzo ha già preparato".
-- Lingua: italiano; date "Lunedì 2 novembre 2026"; importi "186.400 €"; numeri con confronto ("8 a fine ottobre", "+12% su ottobre").
+- Nome dell’app: **Progetto Zio Pino** (nome provvisorio, nel titolo della finestra e nella PWA); nella barra laterale "Zio Pino · AD Progetti srl".
+- Nome dell’assistente: **Alfonzo**, sempre con la z; la z è specchiata nel logotipo e nei pulsanti. Testi: "Chiedi ad Alfonzo", "Alfonzo ha già preparato", "Scadenza trovata da Alfonzo", "Alfonzo · ricerca di stanotte".
+- Lingua: italiano; date "Giovedì 5 novembre 2026"; importi "€ 184.300"; numeri sempre con confronto ("+6 rispetto alla settimana scorsa").

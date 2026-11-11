@@ -1,6 +1,12 @@
 # Stato dei lavori e ripartenza
 
-Aggiornato il 10/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
+Aggiornato l'11/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
+
+## Capitolato v1.2 (11/11/2026) — da fare
+
+Recepito in D-13: Allegato F e nuovi `GRAFICA.md`/`MENU_E_PAGINE.md` 1.2, schermate in `docs/schermate/`. **Il frontend ha ancora la grafica Bento (superata)**: prima di scrivere codice servono il piano e la conferma (CLAUDE.md §6) per la nuova libreria UI a token, la barra laterale trasparente e le pagine. Restano a monte del codice: anello di fattibilità (Gare), anteprima protocollo (Release 2), scadenze dalle email, profilo «produzione-64GB».
+
+**Postgres:** la 5432 è occupata dal Postgres dell'utenza `lucavacca`; il nostro cluster `~/pgdata` gira sulla **5433** (`pg_ctl -D ~/pgdata -o "-p 5433" start`) e il `.env` punta lì.
 
 ## Ripartenza dall'11/11/2026
 
