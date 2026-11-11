@@ -183,4 +183,24 @@ class TenderDocsInboxTest extends EdgeIntegrationTestBase {
         assertThat(Files.exists(f)).isFalse();
         assertThat(FREELLM.calls("/v1/chat/completions")).isEmpty();
     }
+
+    @Test
+    void aSignedEnvelopeIsOpenedAndOnlyTheEnclosedPdfIsRead() throws Exception {
+        Path f = drop("EC-900001", "disciplinare.pdf.p7m", TestP7m.ber(TestPdfs.text(PAGE1, PAGE2)));
+        FREELLM.chat = body -> StubFreeLlmApi.Reply.ok(answer("importo a base di gara e' pari a euro 184.300,00",
+                "servizi di ingegneria relativi a lavori della categoria E.08 per un importo non inferiore a euro 1.200.000,00"));
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.analysed()).isEqualTo(1);
+        assertThat(Files.exists(f)).isFalse();
+        assertThat(jdbc.queryForObject("select status from tender_analysis", String.class)).isEqualTo("ANALIZZATA");
+    }
+
+    @Test
+    void anEnvelopeWithoutAPdfInsideIsRejectedAndDeleted() throws Exception {
+        Path f = drop("EC-900001", "x.p7m", TestP7m.der("non e' un pdf, solo testo lungo abbastanza da superare i cento byte ".repeat(3).getBytes()));
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.failed()).isEqualTo(1);
+        assertThat(Files.exists(f)).isFalse();
+        assertThat(FREELLM.calls("/v1/chat/completions")).isEmpty();
+    }
 }

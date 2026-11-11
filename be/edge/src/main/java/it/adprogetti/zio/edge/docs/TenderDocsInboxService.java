@@ -78,8 +78,14 @@ public class TenderDocsInboxService {
                     continue;
                 }
                 TenderDocumentAnalyzer.Result r;
-                try (InputStream in = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
-                    r = analyzer.analyze(in, requestedBy);
+                try {
+                    byte[] bytes = Files.readAllBytes(file);
+                    if (!P7mUnwrapper.isPdf(bytes)) {
+                        // a digitally signed envelope (.p7m): only the enclosed PDF is read, signatures are not checked
+                        bytes = P7mUnwrapper.unwrap(bytes).filter(P7mUnwrapper::isPdf).orElse(null);
+                    }
+                    r = bytes == null ? TenderDocumentAnalyzer.Result.failed("NOT_A_PDF", null, 0)
+                            : analyzer.analyze(new java.io.ByteArrayInputStream(bytes), requestedBy);
                 } catch (IOException e) {
                     r = TenderDocumentAnalyzer.Result.failed("UNREADABLE", null, 0);
                 }
@@ -129,7 +135,11 @@ public class TenderDocsInboxService {
                 return false;
             }
             try (InputStream in = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
-                return new String(in.readNBytes(5), java.nio.charset.StandardCharsets.ISO_8859_1).equals("%PDF-");
+                byte[] head = in.readNBytes(5);
+                boolean pdf = new String(head, java.nio.charset.StandardCharsets.ISO_8859_1).equals("%PDF-");
+                boolean envelope = head.length >= 2 && head[0] == 0x30 && (head[1] & 0x80) != 0
+                        && file.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".p7m");
+                return pdf || envelope; // by the first bytes, not only by the name
             }
         } catch (IOException e) {
             return false;
