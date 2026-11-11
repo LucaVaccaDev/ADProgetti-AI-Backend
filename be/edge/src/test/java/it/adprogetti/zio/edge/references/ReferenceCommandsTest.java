@@ -11,6 +11,8 @@ import it.adprogetti.zio.contracts.payload.Payloads;
 import it.adprogetti.zio.contracts.payload.ReferencesDecidePayload;
 import it.adprogetti.zio.contracts.payload.ReferencesListPayload;
 import it.adprogetti.zio.contracts.payload.ReferencesResult;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryPayload;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryResult;
 import it.adprogetti.zio.edge.support.EdgeIntegrationTestBase;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
@@ -108,5 +110,34 @@ class ReferenceCommandsTest extends EdgeIntegrationTestBase {
                 .isEqualTo(CommandResult.Status.SUCCEEDED);
         assertThat(send("references.decide", new ReferencesDecidePayload(999999, "SCARTATA"), "TENDERS_ALL").errorCode())
                 .isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    void summaryCountsOnlyApprovedServicesThatEndedInsideEachWindow() throws Exception {
+        // Alfa: 09/2020-12/2020, E.08 1.000.000,50 + E.04 500.000. Approve it; the other two stay unreadable.
+        long id = idOfCig("83974903F8");
+        send("references.decide", new ReferencesDecidePayload(id, "APPROVATA"), "TENDERS_ALL");
+
+        ReferencesSummaryResult at2026 = summary("2026-11-11"); // ended 2020-12-31: inside 10 years only
+        assertThat(at2026.windows()).extracting(ReferencesSummaryResult.Window::years).containsExactly(3, 5, 10);
+        assertThat(at2026.windows().get(0).rows()).isEmpty();
+        assertThat(at2026.windows().get(1).total()).isZero();
+        assertThat(at2026.windows().get(2).rows()).extracting(ReferencesSummaryResult.Row::workId).containsExactly("E.04", "E.08");
+        assertThat(at2026.windows().get(2).services()).isEqualTo(1);
+
+        // the window edge: exactly five years before 2020-12-31 is in, one day later is out
+        assertThat(summary("2025-12-31").windows().get(1).total()).isEqualTo(1500000.5);
+        assertThat(summary("2026-01-01").windows().get(1).total()).isZero();
+        // a service that ends after the reference date is not finished yet
+        assertThat(summary("2020-06-30").windows().get(2).rows()).isEmpty();
+        // discarded references are never counted
+        send("references.decide", new ReferencesDecidePayload(id, "SCARTATA"), "TENDERS_ALL");
+        assertThat(summary("2026-11-11").windows().get(2).total()).isZero();
+    }
+
+    private ReferencesSummaryResult summary(String asOf) throws Exception {
+        CommandResult r = send("references.summary", new ReferencesSummaryPayload(asOf), "TENDERS_ALL");
+        assertThat(r.status()).isEqualTo(CommandResult.Status.SUCCEEDED);
+        return Payloads.read(r.result(), ReferencesSummaryResult.class);
     }
 }

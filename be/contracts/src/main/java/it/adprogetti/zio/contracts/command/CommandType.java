@@ -22,7 +22,9 @@ public enum CommandType {
     /** The studio's references (past services). Client names and amounts: shown to the requester, erased by the Hub. */
     REFERENCES_LIST("references.list", "TENDERS_ALL", true),
     /** Approve, discard or reopen one reference. Only the tender manager decides what the studio may declare. */
-    REFERENCES_DECIDE("references.decide", "TENDERS_ALL", true);
+    REFERENCES_DECIDE("references.decide", "TENDERS_ALL", true),
+    /** Amounts of the approved references per work id over the last 3, 5 and 10 years. */
+    REFERENCES_SUMMARY("references.summary", "TENDERS_ALL", true);
 
     private final String code;
     private final String requiredPermission;

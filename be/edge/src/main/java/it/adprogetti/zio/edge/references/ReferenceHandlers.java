@@ -6,6 +6,8 @@ import it.adprogetti.zio.contracts.payload.Payloads;
 import it.adprogetti.zio.contracts.payload.ReferencesDecidePayload;
 import it.adprogetti.zio.contracts.payload.ReferencesListPayload;
 import it.adprogetti.zio.contracts.payload.ReferencesResult;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryPayload;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryResult;
 import it.adprogetti.zio.edge.audit.EdgeAudit;
 import it.adprogetti.zio.edge.command.CommandFailure;
 import it.adprogetti.zio.edge.command.CommandHandler;
@@ -77,6 +79,39 @@ final class ReferenceHandlers {
                     "by " + command.requestedBy() + ": " + current + " -> " + p.decision());
             var item = store.one(p.id()).orElseThrow(() -> new CommandFailure("NOT_FOUND"));
             return Payloads.write(new ReferencesResult(List.of(item), store.counts(), 1));
+        }
+    }
+
+    /** Totals of the approved references over 3, 5 and 10 years (window = the service ended inside it). */
+    @Component
+    static class SummaryHandler implements CommandHandler {
+        static final int[] YEARS = { 3, 5, 10 };
+        private final ReferenceStore store;
+        private final java.time.Clock clock;
+
+        SummaryHandler(ReferenceStore store, java.time.Clock clock) {
+            this.store = store;
+            this.clock = clock;
+        }
+
+        @Override
+        public CommandType type() {
+            return CommandType.REFERENCES_SUMMARY;
+        }
+
+        @Override
+        public String handle(HubCommand command, Object payload) {
+            ReferencesSummaryPayload p = (ReferencesSummaryPayload) payload;
+            java.time.LocalDate asOf = p.asOf() == null ? java.time.LocalDate.now(clock) : java.time.LocalDate.parse(p.asOf());
+            List<ReferencesSummaryResult.Window> windows = new java.util.ArrayList<>();
+            for (int years : YEARS) {
+                java.time.LocalDate from = asOf.minusYears(years);
+                var rows = store.approvedByWorkId(from, asOf);
+                windows.add(new ReferencesSummaryResult.Window(years, from.toString(), rows,
+                        rows.stream().mapToDouble(ReferencesSummaryResult.Row::amount).sum(),
+                        store.approvedServices(from, asOf)));
+            }
+            return Payloads.write(new ReferencesSummaryResult(asOf.toString(), windows, store.approvedWithoutEndDate()));
         }
     }
 }

@@ -744,6 +744,8 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
                     .andExpect(status().isForbidden());
         }
         mvc.perform(get("/api/references?status=BOH").header("Authorization", bearer("gianna"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/references/summary").header("Authorization", bearer("mario"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/references/summary?asOf=ieri").header("Authorization", bearer("gianna"))).andExpect(status().isBadRequest());
         mvc.perform(get("/api/references?limit=101").header("Authorization", bearer("gianna"))).andExpect(status().isBadRequest());
         for (String body : List.of("{}", "{\"decision\":\"CANCELLATA\"}")) {
             mvc.perform(put("/api/references/1/decision").header("Authorization", bearer("gianna"))

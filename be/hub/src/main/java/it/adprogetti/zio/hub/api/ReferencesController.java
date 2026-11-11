@@ -3,6 +3,7 @@ package it.adprogetti.zio.hub.api;
 import it.adprogetti.zio.contracts.command.CommandType;
 import it.adprogetti.zio.contracts.payload.ReferencesDecidePayload;
 import it.adprogetti.zio.contracts.payload.ReferencesListPayload;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryPayload;
 import it.adprogetti.zio.hub.channel.CommandService;
 import it.adprogetti.zio.hub.common.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,6 +62,21 @@ class ReferencesController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Dati non validi.");
         }
         return accepted(commands.issue(CommandType.REFERENCES_LIST, payload, user.id(), user.username(),
+                user.permissions(), user.ip()));
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasAuthority('TENDERS_ALL')")
+    ResponseEntity<CommandAccepted> summary(@RequestParam(required = false) String asOf, Authentication auth,
+            @AuthenticationPrincipal Jwt jwt, HttpServletRequest request) {
+        CurrentUser user = CurrentUser.from(auth, jwt, request);
+        ReferencesSummaryPayload payload;
+        try {
+            payload = new ReferencesSummaryPayload(asOf);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Dati non validi.");
+        }
+        return accepted(commands.issue(CommandType.REFERENCES_SUMMARY, payload, user.id(), user.username(),
                 user.permissions(), user.ip()));
     }
 

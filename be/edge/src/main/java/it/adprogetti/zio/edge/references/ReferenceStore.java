@@ -1,6 +1,7 @@
 package it.adprogetti.zio.edge.references;
 
 import it.adprogetti.zio.contracts.payload.ReferencesResult;
+import it.adprogetti.zio.contracts.payload.ReferencesSummaryResult;
 import it.adprogetti.zio.edge.references.ReferenceSheetParser.Amount;
 import it.adprogetti.zio.edge.references.ReferenceSheetParser.Service;
 import java.security.MessageDigest;
@@ -88,6 +89,29 @@ class ReferenceStore {
     void setStatus(long id, String status) {
         jdbc.sql("update reference_service set status = :s, updated_at = :t where id = :id").param("id", id)
                 .param("s", status).param("t", Timestamp.from(clock.instant())).update();
+    }
+
+    /** Approved references that ended in [from, asOf], per work id. A service ending after asOf is not finished yet. */
+    List<ReferencesSummaryResult.Row> approvedByWorkId(java.time.LocalDate from, java.time.LocalDate asOf) {
+        return jdbc.sql("""
+                select a.work_id, sum(a.amount), count(distinct s.id)
+                from reference_work_amount a join reference_service s on s.id = a.service_id
+                where s.status = 'APPROVATA' and s.period_to is not null and s.period_to >= :f and s.period_to <= :t
+                group by a.work_id order by a.work_id""").param("f", Date.valueOf(from)).param("t", Date.valueOf(asOf))
+                .query((rs, n) -> new ReferencesSummaryResult.Row(rs.getString(1), rs.getBigDecimal(2).doubleValue(),
+                        rs.getInt(3))).list();
+    }
+
+    int approvedServices(java.time.LocalDate from, java.time.LocalDate asOf) {
+        return jdbc.sql("""
+                select count(*) from reference_service where status = 'APPROVATA' and period_to is not null
+                and period_to >= :f and period_to <= :t""").param("f", Date.valueOf(from))
+                .param("t", Date.valueOf(asOf)).query(Integer.class).single();
+    }
+
+    int approvedWithoutEndDate() {
+        return jdbc.sql("select count(*) from reference_service where status = 'APPROVATA' and period_to is null")
+                .query(Integer.class).single();
     }
 
     Optional<Existing> find(String key) {

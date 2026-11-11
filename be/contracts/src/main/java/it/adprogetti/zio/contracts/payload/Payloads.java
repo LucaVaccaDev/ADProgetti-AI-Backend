@@ -31,6 +31,7 @@ public final class Payloads {
             case DOCS_SEARCH -> DocsSearchPayload.class;
             case REFERENCES_LIST -> ReferencesListPayload.class;
             case REFERENCES_DECIDE -> ReferencesDecidePayload.class;
+            case REFERENCES_SUMMARY -> ReferencesSummaryPayload.class;
         };
     }
 
