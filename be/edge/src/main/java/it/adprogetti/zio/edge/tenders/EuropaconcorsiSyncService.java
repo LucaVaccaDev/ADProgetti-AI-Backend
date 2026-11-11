@@ -48,6 +48,7 @@ public class EuropaconcorsiSyncService {
             return new Result("DISABLED", 0, 0, 0, 0);
         }
         store.startSync(TenderStore.SOURCE_EC);
+        java.time.Instant started = clock.instant();
         int fetched = 0;
         int added = 0;
         int skipped = 0;
@@ -66,7 +67,7 @@ public class EuropaconcorsiSyncService {
                     for (var card : cards) {
                         fetched++;
                         TenderRow row = toRow(card, category.getKey(), category.getValue());
-                        if (row == null || !matchesKeywords(row)) {
+                        if (row == null || !matchesKeywords(row) || !isEngineering(category.getKey(), row.title())) {
                             skipped++;
                         } else if (store.upsert(row)) {
                             added++;
@@ -77,6 +78,9 @@ public class EuropaconcorsiSyncService {
                     }
                 }
             }
+            // A complete run is the truth about what the portal lists today: rows it no longer lists (or the filters no
+            // longer accept) are dropped instead of lingering until their deadline.
+            store.deleteUnseen(TenderStore.SOURCE_EC, started);
             store.purgeClosedBefore(clock.instant().minus(KEEP_CLOSED));
             store.finishSync(TenderStore.SOURCE_EC, "OK", fetched, added, null);
             return new Result("OK", fetched, added, skipped, pages);
@@ -102,6 +106,15 @@ public class EuropaconcorsiSyncService {
         return new TenderRow("EC-" + card.id(), card.title(), card.buyer(), null, null, deadline,
                 LocalDate.now(clock.withZone(ROME)), label, "ec-" + categoryId, List.of(), card.place(), 1,
                 TenderStore.SOURCE_EC, url);
+    }
+
+    /** Categories without a CPV code keep only technical-service titles (see {@link EuropaconcorsiProperties}). */
+    boolean isEngineering(String categoryId, String title) {
+        if (!props.keywordCategories().contains(categoryId)) {
+            return true;
+        }
+        String lower = title.toLowerCase(Locale.ROOT);
+        return props.engineeringKeywords().stream().anyMatch(k -> lower.contains(k.toLowerCase(Locale.ROOT)));
     }
 
     private boolean matchesKeywords(TenderRow row) {

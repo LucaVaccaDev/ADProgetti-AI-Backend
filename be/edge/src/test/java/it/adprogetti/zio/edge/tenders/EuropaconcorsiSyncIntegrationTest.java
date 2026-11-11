@@ -21,6 +21,7 @@ class EuropaconcorsiSyncIntegrationTest extends EdgeIntegrationTestBase {
     @Autowired EuropaconcorsiSyncService sync;
     @Autowired TenderStore store;
     @Autowired JdbcTemplate jdbc;
+    @Autowired EuropaconcorsiProperties props;
 
     @BeforeEach
     void clean() throws Exception {
@@ -93,5 +94,25 @@ class EuropaconcorsiSyncIntegrationTest extends EdgeIntegrationTestBase {
         assertThat(jdbc.queryForObject("select count(*) from tender", Integer.class)).isEqualTo(1);
         // a different tender on the same day is untouched
         assertThat(store.upsert(row("EC-2", "Progettazione della scuola di Monza", "EUROPACONCORSI", deadline))).isTrue();
+    }
+
+    @Test
+    void projectFinancingKeepsOnlyTechnicalServices() {
+        assertThat(sync.isEngineering("200028", "Servizi di progettazione e direzione lavori del nuovo plesso")).isTrue();
+        assertThat(sync.isEngineering("200028", "Verifica del progetto esecutivo")).isTrue();
+        assertThat(sync.isEngineering("200028", "Concessione demaniale marittima con finalità turistico ricreativa")).isFalse();
+        assertThat(sync.isEngineering("200028", "Gestione dell'impianto sportivo comunale")).isFalse();
+        // other categories are not filtered by words
+        assertThat(sync.isEngineering("200025", "Commissione del Paesaggio")).isTrue();
+    }
+
+    @Test
+    void rowsThePortalNoLongerListsAreDroppedAfterACompleteRun() throws Exception {
+        Instant later = Instant.now().plusSeconds(86_400 * 30);
+        store.upsert(row("EC-999", "Gara sparita dal portale", "EUROPACONCORSI", later));
+        store.upsert(row("100-2026", "Gara di TED rimane", "TED", later.plusSeconds(86_400)));
+        sync.run(() -> { });
+        assertThat(jdbc.queryForObject("select count(*) from tender where notice_number = 'EC-999'", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from tender where notice_number = '100-2026'", Integer.class)).isEqualTo(1);
     }
 }

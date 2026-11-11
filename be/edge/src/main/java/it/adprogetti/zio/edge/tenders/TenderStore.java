@@ -119,6 +119,12 @@ class TenderStore {
                         rs.getString("place"), rs.getInt("lots"), rs.getString("source"), rs.getString("url"))).list();
     }
 
+    /** Removes the rows of a source that a complete run did not see again. */
+    int deleteUnseen(String source, Instant runStart) {
+        return jdbc.sql("delete from tender where source = :s and last_seen_at < :t").param("s", source)
+                .param("t", Timestamp.from(runStart)).update();
+    }
+
     /** Old closed tenders are not kept for ever: public data can always be fetched again. */
     int purgeClosedBefore(Instant cutoff) {
         return jdbc.sql("delete from tender where deadline_at is not null and deadline_at < :c")
