@@ -305,4 +305,17 @@ class TenderDocsInboxTest extends EdgeIntegrationTestBase {
         assertThat(req.importoBaseGara().valore()).isEqualTo(184300.0);
         assertThat(req.servizi()).hasSize(1);
     }
+
+    @Test
+    void theSameDocumentDroppedTwiceIsReadOnce() throws Exception {
+        byte[] pdf = TestPdfs.text(PAGE1, PAGE2);
+        Path a = dropLoose("disciplinare EC-900001.pdf", pdf);
+        Path b = dropLoose("disciplinare EC-900001 (1).pdf", pdf);
+        okAnswer();
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.analysed()).isEqualTo(1);
+        assertThat(Files.exists(a)).isFalse();
+        assertThat(Files.exists(b)).isFalse();
+        assertThat(FREELLM.calls("/v1/chat/completions")).hasSize(1);
+    }
 }

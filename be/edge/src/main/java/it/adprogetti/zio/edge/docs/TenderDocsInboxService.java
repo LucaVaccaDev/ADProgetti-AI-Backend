@@ -72,7 +72,8 @@ public class TenderDocsInboxService {
     }
 
     private static final class Counts {
-        int files, analysed, incomplete, failed, rejected, waiting, unmatched;
+        int files, analysed, incomplete, failed, rejected, waiting, unmatched, duplicates;
+        final java.util.Set<String> seen = new java.util.HashSet<>();
     }
 
     public Result run(Runnable checkpoint, String requestedBy) {
@@ -123,6 +124,11 @@ public class TenderDocsInboxService {
         if (!P7mUnwrapper.isPdf(bytes)) {
             // a digitally signed envelope (.p7m): only the enclosed PDF is read, signatures are not checked
             bytes = P7mUnwrapper.unwrap(bytes).filter(P7mUnwrapper::isPdf).orElse(null);
+        }
+        if (bytes != null && !n.seen.add(sha(bytes))) {
+            n.duplicates++; // the same document twice in one run (e.g. "file (1).pdf"): read once, the copy just goes
+            delete(file);
+            return;
         }
         TenderDocumentAnalyzer.Result r;
         String notice = item.notice();
@@ -272,6 +278,14 @@ public class TenderDocsInboxService {
                 .param("n", notice).param("s", status).param("h", a.sha).param("p", a.pages)
                 .param("j", req == null ? null : Payloads.write(req)).param("m", a.model).param("e", a.errorCode)
                 .param("u", requestedBy).param("t", Timestamp.from(clock.instant())).update();
+    }
+
+    private static String sha(byte[] bytes) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void delete(Path file) {
