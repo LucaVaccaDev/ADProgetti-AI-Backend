@@ -77,6 +77,7 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         }
         adminId = createUser("admin", "ADMINISTRATOR");
         createUser("mario", "COLLABORATOR");
+        createUser("gianna", "TENDER_MANAGER");
     }
 
     @AfterEach
@@ -729,5 +730,49 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         assertThat(commands.purgeEphemeralResults()).isEqualTo(1);
         assertThat(commandStatus(id).get("result").isNull()).isTrue();
         assertThat(jdbc.queryForObject("select count(*) from command_result where result like '%segreto%'", Integer.class)).isZero();
+    }
+
+    // --- references -------------------------------------------------------------------------------
+
+    @Test
+    void referencesAreForTheTenderManagerOnlyAndValidated() throws Exception {
+        mvc.perform(get("/api/references")).andExpect(status().isUnauthorized());
+        for (String user : List.of("admin", "mario")) { // the administrator has no tender permissions (D-06)
+            mvc.perform(get("/api/references").header("Authorization", bearer(user))).andExpect(status().isForbidden());
+            mvc.perform(put("/api/references/1/decision").header("Authorization", bearer(user))
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"APPROVATA\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(get("/api/references?status=BOH").header("Authorization", bearer("gianna"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/references?limit=101").header("Authorization", bearer("gianna"))).andExpect(status().isBadRequest());
+        for (String body : List.of("{}", "{\"decision\":\"CANCELLATA\"}")) {
+            mvc.perform(put("/api/references/1/decision").header("Authorization", bearer("gianna"))
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        }
+        mvc.perform(put("/api/references/0/decision").header("Authorization", bearer("gianna"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"APPROVATA\"}")).andExpect(status().isBadRequest());
+        assertThat(jdbc.queryForObject("select count(*) from command_outbox", Integer.class)).isZero();
+    }
+
+    @Test
+    void listingAndDecidingReferencesAreSignedCommandsWithTheManagerPermission() throws Exception {
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.hello();
+        mvc.perform(get("/api/references?status=APPROVATA&limit=10").header("Authorization", bearer("gianna")))
+                .andExpect(status().isAccepted());
+        SignedCommand list = expectCommand(edge);
+        assertThat(list.command().type()).isEqualTo("references.list");
+        assertThat(list.command().permissions()).contains("TENDERS_ALL");
+        edge.send(ChannelEnvelope.Kind.RESULT, new CommandResult(ContractVersion.CURRENT, list.command().id(),
+                CommandResult.Status.SUCCEEDED, "{\"items\":[]}", null));
+        Thread.sleep(300); // the result is recorded, so the command is not delivered again
+        mvc.perform(put("/api/references/7/decision").header("Authorization", bearer("gianna"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"SCARTATA\"}")).andExpect(status().isAccepted());
+        SignedCommand decide = expectCommand(edge);
+        assertThat(decide.command().type()).isEqualTo("references.decide");
+        assertThat(decide.command().requestedBy()).isEqualTo(jdbc.queryForObject(
+                "select id::text from users where username = 'gianna'", String.class));
+        CommandVerifier verifier = new CommandVerifier(hubPublicKey(), new InMemoryNonceStore(), Clock.systemUTC());
+        assertThat(verifier.verify(decide)).isEqualTo(VerificationResult.OK);
     }
 }

@@ -29,6 +29,8 @@ public final class Payloads {
             case JOBS_CANCEL -> JobsCancelPayload.class;
             case NAS_LIST -> NasListPayload.class;
             case DOCS_SEARCH -> DocsSearchPayload.class;
+            case REFERENCES_LIST -> ReferencesListPayload.class;
+            case REFERENCES_DECIDE -> ReferencesDecidePayload.class;
         };
     }
 

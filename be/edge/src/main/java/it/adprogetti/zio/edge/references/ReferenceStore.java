@@ -1,5 +1,6 @@
 package it.adprogetti.zio.edge.references;
 
+import it.adprogetti.zio.contracts.payload.ReferencesResult;
 import it.adprogetti.zio.edge.references.ReferenceSheetParser.Amount;
 import it.adprogetti.zio.edge.references.ReferenceSheetParser.Service;
 import java.security.MessageDigest;
@@ -25,6 +26,68 @@ class ReferenceStore {
     ReferenceStore(JdbcClient jdbc, Clock clock) {
         this.jdbc = jdbc;
         this.clock = clock;
+    }
+
+    ReferencesResult.Counts counts() {
+        return jdbc.sql("select status, count(*) from reference_service group by status").query((rs, n) -> new Object[] {
+                rs.getString(1), rs.getInt(2) }).list().stream().collect(java.util.stream.Collectors.collectingAndThen(
+                java.util.stream.Collectors.toMap(o -> (String) o[0], o -> (Integer) o[1]), m -> new ReferencesResult.Counts(
+                        m.getOrDefault("DA_APPROVARE", 0), m.getOrDefault("DA_VERIFICARE", 0),
+                        m.getOrDefault("APPROVATA", 0), m.getOrDefault("SCARTATA", 0))));
+    }
+
+    int count(String status) {
+        return jdbc.sql("select count(*) from reference_service where (cast(:s as text) is null or status = :s)")
+                .param("s", status).query(Integer.class).single();
+    }
+
+    /** Newest first. Amounts are read in one more query for the page. */
+    List<ReferencesResult.Item> page(String status, int offset, int limit) {
+        List<ReferencesResult.Item> base = jdbc.sql("""
+                select id, cig, place, period_text, period_from, period_to, object, client, role_text, share_percent,
+                    status, issues from reference_service
+                where (cast(:s as text) is null or status = :s)
+                order by period_to desc nulls last, id desc offset :o limit :l""")
+                .param("s", status).param("o", offset).param("l", limit).query((rs, n) -> new Object[] {
+                        rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
+                        rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                        rs.getBigDecimal(10), rs.getString(11), rs.getString(12) }).list().stream()
+                .map(o -> item(o)).toList();
+        return base;
+    }
+
+    Optional<ReferencesResult.Item> one(long id) {
+        return jdbc.sql("""
+                select id, cig, place, period_text, period_from, period_to, object, client, role_text, share_percent,
+                    status, issues from reference_service where id = :id""").param("id", id)
+                .query((rs, n) -> new Object[] { rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                        rs.getBigDecimal(10), rs.getString(11), rs.getString(12) }).optional().map(o -> item(o));
+    }
+
+    private ReferencesResult.Item item(Object[] o) {
+        long id = (Long) o[0];
+        List<ReferencesResult.Amount> amounts = jdbc.sql(
+                "select work_id, category, amount from reference_work_amount where service_id = :id order by work_id")
+                .param("id", id).query((rs, n) -> new ReferencesResult.Amount(rs.getString(1), rs.getString(2),
+                        rs.getBigDecimal(3).doubleValue())).list();
+        double total = amounts.stream().mapToDouble(ReferencesResult.Amount::amount).sum();
+        java.math.BigDecimal share = (java.math.BigDecimal) o[9];
+        String issues = (String) o[11];
+        return new ReferencesResult.Item(id, (String) o[1], (String) o[2], (String) o[3], (String) o[4], (String) o[5],
+                (String) o[6], (String) o[7], (String) o[8], share == null ? null : share.doubleValue(), (String) o[10],
+                issues == null ? List.of() : List.of(issues.split(",")), amounts, total);
+    }
+
+    /** @return the status found, or empty if the reference does not exist; updates only when the move is allowed */
+    Optional<String> status(long id) {
+        return jdbc.sql("select status from reference_service where id = :id").param("id", id).query(String.class)
+                .optional();
+    }
+
+    void setStatus(long id, String status) {
+        jdbc.sql("update reference_service set status = :s, updated_at = :t where id = :id").param("id", id)
+                .param("s", status).param("t", Timestamp.from(clock.instant())).update();
     }
 
     Optional<Existing> find(String key) {

@@ -18,7 +18,11 @@ public enum CommandType {
     /** Read-only listing of NAS folders. The result holds file names, so the Hub keeps it only briefly. */
     NAS_LIST("nas.list", "SETTINGS_MANAGE", true),
     /** Search in the document index. The result holds document excerpts, so the Hub keeps it only briefly. */
-    DOCS_SEARCH("docs.search", "SETTINGS_MANAGE", true);
+    DOCS_SEARCH("docs.search", "SETTINGS_MANAGE", true),
+    /** The studio's references (past services). Client names and amounts: shown to the requester, erased by the Hub. */
+    REFERENCES_LIST("references.list", "TENDERS_ALL", true),
+    /** Approve, discard or reopen one reference. Only the tender manager decides what the studio may declare. */
+    REFERENCES_DECIDE("references.decide", "TENDERS_ALL", true);
 
     private final String code;
     private final String requiredPermission;
