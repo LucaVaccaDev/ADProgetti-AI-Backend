@@ -53,13 +53,24 @@ public class TenderDocumentAnalyzer {
         this.props = props;
     }
 
-    public Result analyze(InputStream pdf, String requestedBy) {
-        Extracted doc;
+    /** Reads the text of a PDF; a failure code in place of the text when it cannot be read. */
+    public record Read(Extracted doc, String errorCode) {
+    }
+
+    Read read(InputStream pdf) {
         try {
-            doc = extractor.extract(pdf);
+            return new Read(extractor.extract(pdf), null);
         } catch (ExtractionException e) {
-            return Result.failed(e.code(), null, 0);
+            return new Read(null, e.code());
         }
+    }
+
+    public Result analyze(InputStream pdf, String requestedBy) {
+        Read read = read(pdf);
+        return read.doc() == null ? Result.failed(read.errorCode(), null, 0) : analyze(read.doc(), requestedBy);
+    }
+
+    Result analyze(Extracted doc, String requestedBy) {
         if (PdfTextExtractor.looksScanned(doc)) {
             return new Result("INCOMPLETA", "SCANSIONE_SENZA_TESTO", TenderRequirements.empty(), doc.sha256(),
                     doc.totalPages(), null);

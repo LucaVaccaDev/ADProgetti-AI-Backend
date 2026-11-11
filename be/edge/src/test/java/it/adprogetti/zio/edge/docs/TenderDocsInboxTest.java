@@ -234,4 +234,75 @@ class TenderDocsInboxTest extends EdgeIntegrationTestBase {
         assertThat(jdbc.queryForObject("select result_json is null from tender_analysis", Boolean.class)).isTrue();
         assertThat(jdbc.queryForObject("select error_code from tender_analysis", String.class)).isEqualTo("INVALID_OUTPUT");
     }
+
+    private Path dropLoose(String name, byte[] bytes) throws Exception {
+        Files.createDirectories(INBOX);
+        Path f = INBOX.resolve(name);
+        Files.write(f, bytes);
+        Files.setLastModifiedTime(f, FileTime.from(Instant.now().minusSeconds(60)));
+        return f;
+    }
+
+    private void okAnswer() {
+        FREELLM.chat = body -> StubFreeLlmApi.Reply.ok(answer("importo a base di gara e' pari a euro 184.300,00",
+                "servizi di ingegneria relativi a lavori della categoria E.08 per un importo non inferiore a euro 1.200.000,00"));
+    }
+
+    @Test
+    void aLooseFileIsAssignedByTheTenderNumberInItsName() throws Exception {
+        Path f = dropLoose("disciplinare EC-900001 firmato.pdf", TestPdfs.text(PAGE1, PAGE2));
+        okAnswer();
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.analysed()).isEqualTo(1);
+        assertThat(Files.exists(f)).isFalse();
+        assertThat(jdbc.queryForObject("select notice_number from tender_analysis", String.class)).isEqualTo("EC-900001");
+    }
+
+    @Test
+    void aLooseFileIsAssignedByTheWordsOfTheTitleInItsFirstPages() throws Exception {
+        jdbc.update("update tender set title = 'Servizi tecnici per acquedotto, fognatura e depurazione' where notice_number = 'EC-900001'");
+        jdbc.update("insert into tender (notice_number, source, title, published_on, notice_type, first_seen_at, last_seen_at) "
+                + "values ('EC-900002', 'EUROPACONCORSI', 'Direzione dei lavori per il centro di riciclaggio di Naturno', current_date, 'x', now(), now())");
+        Path f = dropLoose("scaricato.pdf", TestPdfs.text("DISCIPLINARE. Affidamento dei servizi tecnici di progettazione per "
+                + "acquedotto, fognatura e depurazione del territorio. " + PAGE1, PAGE2));
+        okAnswer();
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.analysed()).isEqualTo(1);
+        assertThat(Files.exists(f)).isFalse();
+        assertThat(jdbc.queryForObject("select notice_number from tender_analysis", String.class)).isEqualTo("EC-900001");
+    }
+
+    @Test
+    void aLooseFileThatMatchesNoTenderOrTwoAlikeStaysAndIsReported() throws Exception {
+        jdbc.update("update tender set title = 'Servizi tecnici per acquedotto, fognatura e depurazione' where notice_number = 'EC-900001'");
+        jdbc.update("insert into tender (notice_number, source, title, published_on, notice_type, first_seen_at, last_seen_at) "
+                + "values ('EC-900002', 'EUROPACONCORSI', 'Servizi tecnici per acquedotto, fognatura e depurazione (lotto 2)', current_date, 'x', now(), now())");
+        Path alike = dropLoose("a.pdf", TestPdfs.text("Servizi tecnici per acquedotto, fognatura e depurazione. " + PAGE1));
+        Path none = dropLoose("b.pdf", TestPdfs.text("Un documento qualsiasi su tutt'altro argomento, senza parole in comune. " + PAGE2));
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.unmatched()).isEqualTo(2);
+        assertThat(Files.exists(alike)).isTrue();
+        assertThat(Files.exists(none)).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from tender_analysis", Integer.class)).isZero();
+        assertThat(FREELLM.calls("/v1/chat/completions")).isEmpty(); // nothing is sent to the AI for an unassigned file
+    }
+
+    @Test
+    void twoDocumentsOfTheSameTenderAreMergedIntoOneResult() throws Exception {
+        dropLoose("bando EC-900001.pdf", TestPdfs.text(PAGE1));
+        dropLoose("disciplinare EC-900001.pdf", TestPdfs.text(PAGE2));
+        FREELLM.chat = body -> {
+            String user = body.get("messages").get(1).get("content").asString();
+            return user.contains("categoria E.08")
+                    ? StubFreeLlmApi.Reply.ok("{\"servizi\":[{\"idOpera\":\"E.08\",\"importoEuro\":1200000.0,\"pagina\":1,\"citazione\":\"categoria E.08 per un importo non inferiore a euro 1.200.000,00\"}]}")
+                    : StubFreeLlmApi.Reply.ok("{\"importoBaseGara\":{\"valore\":184300.0,\"pagina\":1,\"citazione\":\"importo a base di gara e' pari a euro 184.300,00\"}}");
+        };
+        var r = inbox.run(() -> { }, "gianna");
+        assertThat(r.analysed()).isEqualTo(2);
+        assertThat(r.tenders()).isEqualTo(1);
+        TenderRequirements req = it.adprogetti.zio.contracts.payload.Payloads.read(
+                jdbc.queryForObject("select result_json from tender_analysis", String.class), TenderRequirements.class);
+        assertThat(req.importoBaseGara().valore()).isEqualTo(184300.0);
+        assertThat(req.servizi()).hasSize(1);
+    }
 }
