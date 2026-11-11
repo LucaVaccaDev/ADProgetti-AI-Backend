@@ -1,7 +1,6 @@
 package it.adprogetti.zio.edge.tenders;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -25,7 +24,6 @@ public class TenderSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(TenderSyncService.class);
     private static final DateTimeFormatter TED_DATE = DateTimeFormatter.BASIC_ISO_DATE;
-    private static final Duration KEEP_CLOSED = Duration.ofDays(60);
 
     private final TedProperties props;
     private final TedClient client;
@@ -82,7 +80,7 @@ public class TenderSyncService {
                 page++;
                 pause();
             }
-            store.purgeClosedBefore(clock.instant().minus(KEEP_CLOSED));
+            store.purgeExpired();
             store.finishSync(TenderStore.SOURCE_TED, "OK", fetched, added, null);
             return new Result("OK", fetched, added, skipped, Math.min(page, props.maxPages()));
         } catch (TedUnavailableException e) {

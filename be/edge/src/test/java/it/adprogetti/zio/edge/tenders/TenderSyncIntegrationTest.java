@@ -114,4 +114,17 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
         }, 10000);
         assertThat(index).as("tenders.list index").isNotNull();
     }
+    @Test
+    void tendersPastTheirDeadlineAreDeletedAtOnce() {
+        jdbc.update("""
+                insert into tender (notice_number, source, title, deadline_at, published_on, notice_type, first_seen_at, last_seen_at)
+                values ('1-2026','TED','Scaduta', now() - interval '1 minute', current_date, 'x', now(), now()),
+                       ('2-2026','TED','Aperta', now() + interval '1 day', current_date, 'x', now(), now()),
+                       ('3-2026','TED','Senza scadenza', null, current_date, 'x', now(), now())
+                """);
+        projector.periodic();
+        assertThat(jdbc.queryForList("select notice_number from tender order by 1")).extracting(r -> r.get("notice_number"))
+                .containsExactly("2-2026", "3-2026");
+    }
+
 }

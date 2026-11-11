@@ -2,8 +2,10 @@ package it.adprogetti.zio.hub.channel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,6 +64,7 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
     @Autowired PasswordEncoder encoder;
     @Autowired JdbcTemplate jdbc;
     @Autowired CommandService commands;
+    @Autowired it.adprogetti.zio.hub.tenders.TenderDecisionService tenderDecisions;
 
     private FakeEdge edge;
     private UUID adminId;
@@ -69,7 +72,7 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
     @BeforeEach
     void clean() {
         for (String table : List.of("command_result", "command_outbox", "projection", "channel_inbox", "edge_state",
-                "edge_credential", "audit_log", "refresh_tokens", "user_roles", "users")) {
+                "edge_credential", "audit_log", "refresh_tokens", "user_roles", "users", "tender_decision")) {
             jdbc.execute("delete from " + table);
         }
         adminId = createUser("admin", "ADMINISTRATOR");
@@ -466,6 +469,83 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         jdbc.update("delete from projection where name = 'tenders.list' and entity_id = 's1'");
         mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.tenders.length()").value(1));
+    }
+
+    // --- tender decisions -------------------------------------------------------------------------
+
+    private void seedTenders(String deadline) {
+        String tender = "{\"id\":\"100-2026\",\"source\":\"TED\",\"title\":\"Servizio\",\"deadline\":\"" + deadline + "\"}";
+        jdbc.update("insert into projection (name, entity_id, version, data, updated_at) values ('tenders.list','s0',1,?,now())",
+                "{\"shard\":0,\"shards\":1,\"total\":1,\"sources\":[],\"tenders\":[" + tender + "]}");
+        jdbc.update("insert into projection (name, entity_id, version, data, updated_at) values ('tenders.list','all',1,?,now())",
+                "{\"shard\":-1,\"shards\":1,\"total\":1,\"sources\":[],\"tenders\":[]}");
+    }
+
+    private String decide(String user, String id, String body) throws Exception {
+        return mvc.perform(put("/api/tenders/" + id + "/decision").header("Authorization", bearer(user))
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void aTenderCanBeAcceptedDiscardedAndRecoveredByWhoWorksOnTenders() throws Exception {
+        seedTenders(Instant.now().plusSeconds(86_400 * 5L).toString());
+        mvc.perform(put("/api/tenders/100-2026/decision").contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("admin"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/tenders/100-2026/decision").header("Authorization", bearer("admin"))).andExpect(status().isForbidden());
+
+        mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"REJECTED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.value").value("REJECTED")).andExpect(jsonPath("$.by").value("mario"));
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.data.tenders[0].decision.value").value("REJECTED"));
+        // changing and repeating a decision is allowed
+        mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isOk());
+        mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("select count(*) from tender_decision", Integer.class)).isEqualTo(1);
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.data.tenders[0].decision.value").value("ACCEPTED"));
+        // recovery, also when there is nothing to recover
+        mvc.perform(delete("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))).andExpect(status().isNoContent());
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.data.tenders[0].decision").doesNotExist());
+        assertThat(jdbc.queryForList("select action from audit_log where action like 'TENDER_%' order by id"))
+                .extracting(r -> r.get("action")).containsExactly("TENDER_REJECTED", "TENDER_ACCEPTED", "TENDER_ACCEPTED",
+                        "TENDER_DECISION_CLEARED");
+    }
+
+    @Test
+    void decisionsRefuseUnknownTendersBadIdsAndBadValues() throws Exception {
+        seedTenders(Instant.now().plusSeconds(86_400).toString());
+        assertThat(decide("mario", "999-2026", "{\"decision\":\"ACCEPTED\"}")).contains("non trovata");
+        mvc.perform(put("/api/tenders/999-2026/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isNotFound());
+        mvc.perform(put("/api/tenders/" + "x".repeat(41) + "/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/tenders/a%20b/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isBadRequest());
+        for (String body : List.of("{\"decision\":\"MAYBE\"}", "{}", "{\"decision\":null}")) {
+            mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        }
+        assertThat(jdbc.queryForObject("select count(*) from tender_decision", Integer.class)).isZero();
+    }
+
+    @Test
+    void anExpiredTenderCannotBeDecidedAndDecisionsDisappearAtTheDeadline() throws Exception {
+        seedTenders(Instant.now().minusSeconds(60).toString());
+        mvc.perform(put("/api/tenders/100-2026/decision").header("Authorization", bearer("mario"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"ACCEPTED\"}")).andExpect(status().isConflict());
+        // a decision whose deadline passed is neither shown nor kept
+        jdbc.update("insert into tender_decision values ('100-2026','ACCEPTED',?, 'mario', now(), now() - interval '1 minute')", adminId);
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.data.tenders[0].decision").doesNotExist());
+        assertThat(tenderDecisions.purgeExpired()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from tender_decision", Integer.class)).isZero();
     }
 
     // --- jobs -------------------------------------------------------------------------------------

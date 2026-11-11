@@ -53,6 +53,7 @@ class TendersProjector {
 
     @Scheduled(initialDelay = 15_000, fixedDelay = 60_000)
     void periodic() {
+        store.purgeExpired();
         publish(false);
     }
 

@@ -125,9 +125,9 @@ class TenderStore {
                 .param("t", Timestamp.from(runStart)).update();
     }
 
-    /** Old closed tenders are not kept for ever: public data can always be fetched again. */
-    int purgeClosedBefore(Instant cutoff) {
-        return jdbc.sql("delete from tender where deadline_at is not null and deadline_at < :c")
-                .param("c", Timestamp.from(cutoff)).update();
+    /** Past the deadline a tender is deleted (public data can always be fetched again, and the studio asked for it). */
+    int purgeExpired() {
+        return jdbc.sql("delete from tender where deadline_at is not null and deadline_at <= :now")
+                .param("now", Timestamp.from(clock.instant())).update();
     }
 }

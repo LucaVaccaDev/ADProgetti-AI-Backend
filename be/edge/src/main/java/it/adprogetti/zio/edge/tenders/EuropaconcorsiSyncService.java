@@ -2,7 +2,6 @@ package it.adprogetti.zio.edge.tenders;
 
 import it.adprogetti.zio.edge.jobs.JobCancelledException;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -25,7 +24,6 @@ public class EuropaconcorsiSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(EuropaconcorsiSyncService.class);
     private static final ZoneId ROME = ZoneId.of("Europe/Rome");
-    private static final Duration KEEP_CLOSED = Duration.ofDays(60);
 
     private final EuropaconcorsiProperties props;
     private final EuropaconcorsiClient client;
@@ -81,7 +79,7 @@ public class EuropaconcorsiSyncService {
             // A complete run is the truth about what the portal lists today: rows it no longer lists (or the filters no
             // longer accept) are dropped instead of lingering until their deadline.
             store.deleteUnseen(TenderStore.SOURCE_EC, started);
-            store.purgeClosedBefore(clock.instant().minus(KEEP_CLOSED));
+            store.purgeExpired();
             store.finishSync(TenderStore.SOURCE_EC, "OK", fetched, added, null);
             return new Result("OK", fetched, added, skipped, pages);
         } catch (TedUnavailableException e) {
