@@ -318,4 +318,27 @@ class TenderDocsInboxTest extends EdgeIntegrationTestBase {
         assertThat(Files.exists(b)).isFalse();
         assertThat(FREELLM.calls("/v1/chat/completions")).hasSize(1);
     }
+
+    @Test
+    void aTooLongAnswerIsAskedAgainOnHalfTheTextAndNothingIsLost() throws Exception {
+        drop("EC-900001", "d.pdf", TestPdfs.text(PAGE1, PAGE2));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        FREELLM.chat = body -> {
+            String user = body.get("messages").get(1).get("content").asString();
+            if (calls.incrementAndGet() == 1) {
+                return StubFreeLlmApi.Reply.ok("{\"servizi\":[{\"idOpera\":\"E.08\",\"importoEuro\":12000"); // cut short
+            }
+            return user.contains("categoria E.08")
+                    ? StubFreeLlmApi.Reply.ok("{\"servizi\":[{\"idOpera\":\"E.08\",\"importoEuro\":1200000.0,\"pagina\":2,\"citazione\":\"categoria E.08 per un importo non inferiore a euro 1.200.000,00\"}]}")
+                    : StubFreeLlmApi.Reply.ok("{\"importoBaseGara\":{\"valore\":184300.0,\"pagina\":1,\"citazione\":\"importo a base di gara e' pari a euro 184.300,00\"}}");
+        };
+        inbox.run(() -> { }, "gianna");
+        assertThat(calls.get()).isEqualTo(3); // the whole, then each half
+        TenderRequirements req = it.adprogetti.zio.contracts.payload.Payloads.read(
+                jdbc.queryForObject("select result_json from tender_analysis", String.class), TenderRequirements.class);
+        assertThat(req.importoBaseGara().valore()).isEqualTo(184300.0);
+        assertThat(req.servizi()).hasSize(1);
+        assertThat(req.incertezze()).noneMatch(x -> x.contains("NON_VALIDA"));
+        assertThat(jdbc.queryForObject("select status from tender_analysis", String.class)).isEqualTo("ANALIZZATA");
+    }
 }
