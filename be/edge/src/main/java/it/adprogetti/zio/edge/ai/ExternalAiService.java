@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class ExternalAiService {
 
     /** Allowed uses. SELF_TEST sends one fixed sentence, never user text. */
-    public enum Purpose { GENERAL_SEARCH, SELF_TEST }
+    public enum Purpose { GENERAL_SEARCH, SELF_TEST, TENDER_DOCUMENT }
 
     public enum Status { OK, BLOCKED, UNAVAILABLE }
 
@@ -70,6 +70,31 @@ public class ExternalAiService {
         }
         Answer external = callExternal(purpose, requestedBy, conversationId, question);
         return external.ok() ? external : fallbackToLocal(requestedBy, question, external.reason());
+    }
+
+    /**
+     * Reads a PUBLIC tender document (capitolato B.4/E.2; the committente confirmed it on 11/11/2026). The text of a
+     * public tender is not studio data, so the A.2 filter (which would block the RUP's e-mail or VAT number) is not
+     * applied; what protects the studio is that the caller sends only the document text, never studio data. No
+     * local fallback and no per-user limit: the caller handles an unavailable answer. The call is logged by purpose.
+     */
+    public Answer readPublicDocument(String requestedBy, String instructions, String documentText, int maxTokens) {
+        long start = System.nanoTime();
+        PromptBuilder.Prompt prompt = PromptBuilder.build(new AiTask(AiFunction.ANALYSIS, instructions, documentText, null,
+                maxTokens, Priority.NORMAL, requestedBy));
+        try {
+            FreeLlmApiClient.Answer r = client.chat(props.textProfile(), prompt.system(), prompt.user(), maxTokens,
+                    userTag(requestedBy, "tender-doc"));
+            long ms = elapsed(start);
+            usage.recordExternal(Purpose.TENDER_DOCUMENT.name(), r.routedVia(), requestedBy, "OK", null, ms,
+                    r.promptTokens(), r.completionTokens());
+            return new Answer(Status.OK, Source.EXTERNAL, r.content().strip(), r.routedVia(), null, ms);
+        } catch (AiUnavailableException | AiRequestException e) {
+            long ms = elapsed(start);
+            String code = e instanceof AiUnavailableException u ? u.code() : ((AiRequestException) e).code();
+            usage.recordExternal(Purpose.TENDER_DOCUMENT.name(), null, requestedBy, "UNAVAILABLE", code, ms, 0, 0);
+            return new Answer(Status.UNAVAILABLE, null, null, null, code, ms);
+        }
     }
 
     private Answer callExternal(Purpose purpose, String requestedBy, String conversationId, String text) {

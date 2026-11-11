@@ -21,7 +21,7 @@ class JobsRunHandler implements CommandHandler {
 
     /** Types an administrator may start by hand. PROTOCOL_RUN joins this list with the protocol module. */
     static final Set<String> MANUAL_TYPES = Set.of(SystemSelfCheckHandler.TYPE, "INDEX_NAS", "TENDERS_SYNC",
-            "TENDERS_SYNC_EC", "REFERENCES_IMPORT");
+            "TENDERS_SYNC_EC", "REFERENCES_IMPORT", "TENDER_DOCS_READ");
     static final int MANUAL_PRIORITY = 7;
 
     private final JobService jobs;
