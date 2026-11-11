@@ -2,9 +2,9 @@
 
 Aggiornato l'11/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
 
-## Capitolato v1.2 (11/11/2026) — da fare
+## Capitolato v1.2 (11/11/2026)
 
-Recepito in D-13: Allegato F e nuovi `GRAFICA.md`/`MENU_E_PAGINE.md` 1.2, schermate in `docs/schermate/`. **Il frontend ha ancora la grafica Bento (superata)**: prima di scrivere codice servono il piano e la conferma (CLAUDE.md §6) per la nuova libreria UI a token, la barra laterale trasparente e le pagine. Restano a monte del codice: anello di fattibilità (Gare), anteprima protocollo (Release 2), scadenze dalle email, profilo «produzione-64GB».
+Recepito in D-13. **Grafica v1.2 realizzata nel frontend (D-14, commit `86b8e53`, `c536658`, `f3b93fe`, `96ce866`)**: token e Inter, libreria UI, barra laterale trasparente, Panoramica, sezioni, Amministrazione, login. Test: 77 Vitest verdi. Controllata a vista dal committente (Panoramica e barra laterale). Restano: pagine delle schermate 02–10 con i loro moduli (Gare con anello di fattibilità, Segreteria con anteprima protocollo, Calendario, Commesse, BIM, Foto, Chat), rifinitura di Amministrazione secondo la schermata 09, scadenze dalle email (F.4), profilo «produzione-64GB» (F.5).
 
 **Postgres:** la 5432 è occupata dal Postgres dell'utenza `lucavacca`; il nostro cluster `~/pgdata` gira sulla **5433** (`pg_ctl -D ~/pgdata -o "-p 5433" start`) e il `.env` punta lì.
 
@@ -14,7 +14,7 @@ Recepito in D-13: Allegato F e nuovi `GRAFICA.md`/`MENU_E_PAGINE.md` 1.2, scherm
 
 **Servizi (avvio manuale, non ripartono da soli):** Colima, Postgres (`~/pgdata`), Ollama, FreeLLMAPI (`npm run dev` in `~/tools/freellmapi`, Node 24 per primo nel `PATH`), Hub `bash scripts/start-hub.sh`, Edge `bash scripts/start-edge.sh --spring.profiles.active=ssdtest`, frontend `npm start` in `fe/`. Log in `~/logs/`. Segreti in `.env` (non in git) e nel portachiavi.
 
-**Da fare per primo domani:**
+**Da fare (stamattina non ancora fatto):**
 1. Avviare i servizi, aprire `/admin/docs`, premere «Aggiorna indice» (200 file per giro, solo `GARE 2025`) finché è «Completata»; provare qualche ricerca; tarare `edge.docs.min-similarity`.
 2. Premere «Prova FreeLLMAPI» in Amministrazione > Modelli AI (la catena TESTO ora ha modelli; con curl funzionava).
 

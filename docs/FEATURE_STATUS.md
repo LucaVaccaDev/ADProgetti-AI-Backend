@@ -23,7 +23,7 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Benchmark modelli AI | scripts | TESTATA_CON_DATI_SIMULATI | Dati sintetici; da ripetere sul campione reale anonimizzato |
 | Servizio percorsi NAS | edge | SPECIFICATA | |
 | Web: login, sessione, gestione utenti, PWA | fe | TESTATA_CON_DATI_SIMULATI | Test Vitest con HTTP simulato; non ancora verificato in un browser |
-| Web: grafica Bento (SUPERATA dall'Allegato F.1, da rifare secondo GRAFICA 1.2), menu laterale, intestazioni, Panoramica (struttura, calendario mensile) | fe | TESTATA_CON_DATI_SIMULATI | 18 test Vitest in totale. Riquadri senza dati dal Hub; non ancora verificata a vista in un browser |
+| Web: grafica Bento (SUPERATA dall'Allegato F.1, sostituita dalla v1.2: vedi riga seguente) | fe | SPECIFICATA | Rimossa nei passi 1–4 del piano (D-14) |
 | Web: Segreteria, Gare, BIM, Foto, Ricerca e chat, Calendario, Commesse, Amministrazione (pagine) | fe | IN_SVILUPPO | Solo struttura e stati vuoti; contenuti dei capitoli 4–11 di MENU_E_PAGINE da realizzare uno per volta |
 | Stato sistema (`/api/system/status`) | hub | TESTATA_CON_SERVIZIO_REALE | Segue la connessione e l'heartbeat reali; senza Edge resta "non collegato" |
 | Script di installazione, avvio, arresto | infra, scripts | SPECIFICATA | |
@@ -31,7 +31,7 @@ Stati: SPECIFICATA, IN_SVILUPPO, IMPLEMENTATA, TESTATA_CON_DATI_SIMULATI, TESTAT
 | Import storico email (IMAP + PST/OLM, marcato STORICO, riprendibile) | edge | SPECIFICATA | Allegato D.2; verificare spazio Mac/NAS e elenco PST/OLM |
 | Modulo Gare — decisioni dettagliate (indice probabilità, criticità, requisiti, AI commissario, pacchetto offerta, firme, post-presentazione) | hub, edge, fe | SPECIFICATA | Allegato E / D-12; Release 4 |
 | Profilo AI locale `test-24GB` e benchmark modelli | edge | SPECIFICATA | T-19 |
-| Web: grafica v1.2 (barra laterale trasparente, intestazioni lilla, libreria UI a token, 10 schermate di riferimento) | fe | SPECIFICATA | Allegato F.1, D-13; sostituisce la grafica Bento |
+| Web: grafica v1.2 (token e Inter, libreria UI condivisa, barra laterale trasparente apribile, Panoramica, sezioni, Amministrazione, login) | fe | TESTATA_CON_DATI_SIMULATI | Allegato F.1, D-13/D-14. 77 test Vitest. Controllata a vista dal committente su Panoramica e barra laterale (11/11); da rivedere: barra chiusa, telefono, pagine admin secondarie. Dati reali assenti: solo stati vuoti. Mancano le pagine delle schermate 02–10 (moduli futuri) |
 | Indicatore di fattibilità gare (anello iOS 26, verde/giallo/rosso, soglie configurabili) | hub, web | SPECIFICATA | Allegato F.2; dipende dal modulo Gare |
 | Anteprima del protocollo (15 min prima delle elaborazioni) e annullamento rapido entro 60 min | edge, hub, web | SPECIFICATA | Allegato F.3; dipende dal modulo Protocollo (Release 2) |
 | Scadenze trovate nelle comunicazioni («Scadenza trovata da Alfonzo», conferma prima del calendario) | edge, hub, web | SPECIFICATA | Allegato F.4; AI locale; dipende da protocollo e Calendario |
