@@ -10,6 +10,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * What the studio needs to know from a tender's documents (capitolato E.2). Every value carries the page and the words
@@ -89,6 +93,96 @@ public record TenderRequirements(Finding<Double> importoBaseGara, Finding<String
              "documenti":[{"descrizione":"...","pagina":int,"citazione":"..."}],
              "incertezze":["..."]}""";
 
+    // --- reading the model's answer, item by item --------------------------------------------------------------
+
+    private static final JsonMapper LENIENT = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
+
+    /** Why a whole answer could not be read: a short code, never the model's words. */
+    public static class UnreadableAnswer extends RuntimeException {
+        public UnreadableAnswer(String code) {
+            super(code);
+        }
+    }
+
+    /**
+     * Reads the answer of one window one item at a time: a malformed item is dropped and reported in the notes, it does
+     * not take the others down with it. Nothing is repaired or guessed: a number written as text ("1.200.000,00") is NOT
+     * converted, the item is dropped. Unknown extra fields are ignored. An answer that is not a JSON object is refused
+     * with a code (NO_JSON, BAD_JSON, NOT_AN_OBJECT).
+     */
+    public static Raw parseLenient(String json) {
+        if (json == null || json.indexOf('{') < 0) {
+            throw new UnreadableAnswer("NO_JSON");
+        }
+        JsonNode root;
+        try {
+            root = LENIENT.readTree(json);
+        } catch (JacksonException e) {
+            throw new UnreadableAnswer("BAD_JSON"); // typically an answer cut short at the token limit
+        }
+        if (root == null || !root.isObject()) {
+            throw new UnreadableAnswer("NOT_AN_OBJECT");
+        }
+        List<String> notes = new ArrayList<>();
+        if (root.get("incertezze") != null && root.get("incertezze").isArray()) {
+            root.get("incertezze").forEach(n -> {
+                if (n.isString()) {
+                    notes.add(n.asString());
+                }
+            });
+        }
+        RawValue<Double> amount = number(root.get("importoBaseGara"), notes, "IMPORTO_BASE_GARA");
+        RawValue<String> criterio = text(root.get("criterio"), notes, "CRITERIO");
+        RawValue<String> deadline = text(root.get("scadenzaOfferte"), notes, "SCADENZA");
+        return new Raw(amount, criterio, deadline,
+                items(root.get("servizi"), RawService.class, notes, "SERVIZIO_NON_VALIDO"),
+                items(root.get("fatturato"), RawTurnover.class, notes, "FATTURATO_NON_VALIDO"),
+                items(root.get("personale"), RawStaff.class, notes, "PERSONALE_NON_VALIDO"),
+                items(root.get("documenti"), RawDoc.class, notes, "DOCUMENTO_NON_VALIDO"), notes);
+    }
+
+    private static RawValue<Double> number(JsonNode n, List<String> notes, String code) {
+        if (n == null || n.isNull() || !n.isObject() || n.get("valore") == null || n.get("valore").isNull()) {
+            return null;
+        }
+        if (!n.get("valore").isNumber()) {
+            notes.add(code + "_NON_NUMERICO");
+            return null;
+        }
+        return new RawValue<>(n.get("valore").asDouble(), intOrNull(n.get("pagina")), strOrNull(n.get("citazione")));
+    }
+
+    private static RawValue<String> text(JsonNode n, List<String> notes, String code) {
+        if (n == null || n.isNull() || !n.isObject() || n.get("valore") == null || !n.get("valore").isString()) {
+            return null;
+        }
+        return new RawValue<>(n.get("valore").asString(), intOrNull(n.get("pagina")), strOrNull(n.get("citazione")));
+    }
+
+    private static <T> List<T> items(JsonNode arr, Class<T> type, List<String> notes, String code) {
+        List<T> out = new ArrayList<>();
+        if (arr == null || !arr.isArray()) {
+            return out;
+        }
+        for (JsonNode el : arr) {
+            try {
+                out.add(LENIENT.treeToValue(el, type));
+            } catch (JacksonException | IllegalArgumentException e) {
+                notes.add(code);
+            }
+        }
+        return out;
+    }
+
+    private static Integer intOrNull(JsonNode n) {
+        return n != null && n.isIntegralNumber() ? n.asInt() : null;
+    }
+
+    private static String strOrNull(JsonNode n) {
+        return n != null && n.isString() ? n.asString() : null;
+    }
+
     // --- grounding ------------------------------------------------------------------------------------------------
 
     /** Pages of the document by number, for checking quotes. */
@@ -140,11 +234,15 @@ public record TenderRequirements(Finding<Double> importoBaseGara, Finding<String
         List<String> notes = new ArrayList<>(raw.incertezze() == null ? List.of() : raw.incertezze().stream()
                 .filter(Objects::nonNull).map(s -> cut(s, 300)).limit(20).toList());
         Finding<Double> amount = null;
-        if (raw.importoBaseGara() != null && validAmount(raw.importoBaseGara().valore())) {
+        if (raw.importoBaseGara() != null && blank(raw.importoBaseGara().citazione())) {
+            notes.add("IMPORTO_BASE_GARA_SENZA_CITAZIONE");
+        } else if (raw.importoBaseGara() != null && validAmount(raw.importoBaseGara().valore())) {
             amount = finding(raw.importoBaseGara().valore(), raw.importoBaseGara().pagina(), raw.importoBaseGara().citazione(), pages);
         }
         Finding<String> criterio = null;
-        if (raw.criterio() != null && raw.criterio().valore() != null) {
+        if (raw.criterio() != null && blank(raw.criterio().citazione())) {
+            notes.add("CRITERIO_SENZA_CITAZIONE"); // a value with no words behind it is not a finding
+        } else if (raw.criterio() != null && raw.criterio().valore() != null) {
             String c = raw.criterio().valore().strip().toUpperCase(Locale.ROOT);
             if (CRITERI.contains(c)) {
                 criterio = finding(c, raw.criterio().pagina(), raw.criterio().citazione(), pages);
@@ -153,7 +251,9 @@ public record TenderRequirements(Finding<Double> importoBaseGara, Finding<String
             }
         }
         Finding<String> deadline = null;
-        if (raw.scadenzaOfferte() != null && raw.scadenzaOfferte().valore() != null) {
+        if (raw.scadenzaOfferte() != null && blank(raw.scadenzaOfferte().citazione())) {
+            notes.add("SCADENZA_SENZA_CITAZIONE");
+        } else if (raw.scadenzaOfferte() != null && raw.scadenzaOfferte().valore() != null) {
             try {
                 String d = LocalDate.parse(raw.scadenzaOfferte().valore().strip()).toString();
                 deadline = finding(d, raw.scadenzaOfferte().pagina(), raw.scadenzaOfferte().citazione(), pages);
@@ -258,6 +358,10 @@ public record TenderRequirements(Finding<Double> importoBaseGara, Finding<String
             return new Finding<>(value, other, q, true);
         }
         return new Finding<>(value, page, q, false);
+    }
+
+    private static boolean blank(String s) {
+        return s == null || s.isBlank();
     }
 
     private static boolean validAmount(Double v) {

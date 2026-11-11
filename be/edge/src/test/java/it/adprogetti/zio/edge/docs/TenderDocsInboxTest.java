@@ -203,4 +203,35 @@ class TenderDocsInboxTest extends EdgeIntegrationTestBase {
         assertThat(Files.exists(f)).isFalse();
         assertThat(FREELLM.calls("/v1/chat/completions")).isEmpty();
     }
+
+    @Test
+    void aBadItemIsDroppedAndReportedButTheRestOfTheAnswerIsKept() throws Exception {
+        drop("EC-900001", "d.pdf", TestPdfs.text(PAGE1, PAGE2));
+        FREELLM.chat = body -> StubFreeLlmApi.Reply.ok("""
+                {"importoBaseGara":{"valore":"184.300,00","pagina":1,"citazione":"importo a base di gara e' pari a euro 184.300,00"},
+                 "criterio":{"valore":"ALTRO","pagina":0,"citazione":""},
+                 "campoInventato":42,
+                 "servizi":[{"idOpera":"E.08","importoEuro":"un milione","pagina":2,"citazione":"categoria E.08"},
+                            {"idOpera":"E.08","importoEuro":1200000.0,"pagina":2,"citazione":"servizi di ingegneria relativi a lavori della categoria E.08"}],
+                 "fatturato":[],"personale":[],"documenti":[],"incertezze":["testo in due lingue"]}""");
+        inbox.run(() -> { }, "gianna");
+        TenderRequirements req = it.adprogetti.zio.contracts.payload.Payloads.read(
+                jdbc.queryForObject("select result_json from tender_analysis", String.class), TenderRequirements.class);
+        assertThat(req.importoBaseGara()).isNull(); // a number written as text is not converted
+        assertThat(req.criterio()).isNull(); // a value with no quote is not a finding
+        assertThat(req.servizi()).hasSize(1);
+        assertThat(req.servizi().get(0).verificata()).isTrue();
+        assertThat(req.incertezze()).contains("IMPORTO_BASE_GARA_NON_NUMERICO", "CRITERIO_SENZA_CITAZIONE",
+                "SERVIZIO_NON_VALIDO", "testo in due lingue");
+        assertThat(jdbc.queryForObject("select status from tender_analysis", String.class)).isEqualTo("ANALIZZATA");
+    }
+
+    @Test
+    void anAnswerCutShortSaysWhyInTheNotes() throws Exception {
+        drop("EC-900001", "d.pdf", TestPdfs.text(PAGE1));
+        FREELLM.chat = body -> StubFreeLlmApi.Reply.ok("{\"importoBaseGara\":{\"valore\":184300.0,\"pagina\":1,\"citaz");
+        inbox.run(() -> { }, "gianna");
+        assertThat(jdbc.queryForObject("select result_json is null from tender_analysis", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("select error_code from tender_analysis", String.class)).isEqualTo("INVALID_OUTPUT");
+    }
 }
