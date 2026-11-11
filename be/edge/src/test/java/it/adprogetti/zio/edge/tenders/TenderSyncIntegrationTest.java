@@ -47,7 +47,7 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
         sync.run(() -> { });
         String request = TED.requests().get(0);
         assertThat(request).startsWith("POST /v3/notices/search")
-                .contains("buyer-country=ITA", "classification-cpv=71*", "notice-type IN (cn-standard cn-social)");
+                .contains("buyer-country=ITA", "classification-cpv=713*", "classification-cpv=715*", "notice-type IN (cn-standard cn-social)");
     }
 
     @Test
