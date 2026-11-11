@@ -8,10 +8,19 @@ import java.util.List;
  * description, no analysis of the studio. Times are ISO-8601 instants (UTC), dates are {@code yyyy-MM-dd}.
  * {@code url} is always https, at most 500 characters; for TED it is built by the Edge from the notice number, for
  * other sources it is the link of the publishing portal and must be treated as untrusted text.
+ *
+ * <p>The list does not fit one message (the Hub accepts 65,536 characters per projection), so it travels in
+ * shards: entity {@code s0}, {@code s1}... hold the tenders (soonest deadline first, {@code shard} = their number),
+ * and the entity {@code all} is the index ({@code shard} = {@link #INDEX}): it says how many shards are current
+ * ({@code shards}), the total and the state of each source, and carries no tenders. A reader takes the index first
+ * and then only the shards it names, so shards left over from a longer list are never read.
  */
-public record TendersListProjection(int total, List<SourceState> sources, List<Tender> tenders) {
+public record TendersListProjection(int shard, int shards, int total, List<SourceState> sources, List<Tender> tenders) {
 
-    public static final int MAX_TENDERS = 200;
+    /** Value of {@code shard} in the index message. */
+    public static final int INDEX = -1;
+    /** Most tenders in one shard (the Edge also cuts by size). */
+    public static final int MAX_TENDERS = 150;
 
     public TendersListProjection {
         sources = sources == null ? List.of() : List.copyOf(sources);

@@ -65,12 +65,38 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
     void theProjectionStaysWithinTheHubLimitAndPointsToTed() throws Exception {
         TED.reply = new it.adprogetti.zio.edge.support.StubTed.Reply(200, page());
         sync.run(() -> { });
-        var projection = projector.build();
-        assertThat(projection.sources()).extracting(it.adprogetti.zio.contracts.payload.TendersListProjection.SourceState::name)
+        var built = projector.build();
+        assertThat(built.index().sources()).extracting(it.adprogetti.zio.contracts.payload.TendersListProjection.SourceState::name)
                 .containsExactly("TED", "EUROPACONCORSI");
-        assertThat(projection.tenders()).allSatisfy(t -> assertThat(t.url()).startsWith("https://ted.europa.eu/"));
-        assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(projection).length())
-                .isLessThan(TendersProjector.MAX_JSON_CHARS);
+        assertThat(built.index().tenders()).isEmpty();
+        assertThat(built.shards().stream().flatMap(s -> s.tenders().stream()))
+                .allSatisfy(t -> assertThat(t.url()).startsWith("https://ted.europa.eu/"));
+        assertThat(built.shards()).allSatisfy(s -> assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(s).length())
+                .isLessThan(TendersProjector.MAX_JSON_CHARS));
+    }
+
+    @Test
+    void aLongListTravelsInShardsThatTheIndexCounts() {
+        java.time.Instant deadline = java.time.Instant.now().plusSeconds(86_400L * 30);
+        for (int i = 0; i < 300; i++) {
+            jdbc.update("""
+                    insert into tender (notice_number, source, title, buyer, deadline_at, published_on, notice_type, first_seen_at, last_seen_at)
+                    values (?, 'EUROPACONCORSI', ?, 'Ente', ?, current_date, 'x', now(), now())
+                    """, "EC-" + (1000 + i), "Servizio tecnico numero " + i + " ".repeat(0) + "x".repeat(120),
+                    java.sql.Timestamp.from(deadline.plusSeconds(i * 60L)));
+        }
+        var built = projector.build();
+        assertThat(built.shards().size()).isGreaterThanOrEqualTo(3);
+        assertThat(built.index().shards()).isEqualTo(built.shards().size());
+        assertThat(built.shards().stream().mapToInt(s -> s.tenders().size()).sum()).isEqualTo(300);
+        assertThat(built.shards()).allSatisfy(s -> {
+            assertThat(s.tenders().size()).isLessThanOrEqualTo(TendersProjector.SHARD_SIZE);
+            assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(s).length()).isLessThan(TendersProjector.MAX_JSON_CHARS);
+        });
+        // soonest deadline first across shards
+        var ids = built.shards().stream().flatMap(s -> s.tenders().stream()).map(t -> t.id()).toList();
+        assertThat(ids.get(0)).isEqualTo("EC-1000");
+        assertThat(ids.get(299)).isEqualTo("EC-1299");
     }
 
     @Test
@@ -81,7 +107,11 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
         TED.reply = new it.adprogetti.zio.edge.support.StubTed.Reply(200, page());
         hub.clear();
         sync.run(() -> { });
-        assertThat(hub.await(ChannelEnvelope.Kind.PROJECTION,
-                f -> f.body() != null && f.body().contains("tenders.list"), 10000)).isNotNull();
+        var index = hub.await(ChannelEnvelope.Kind.PROJECTION, f -> {
+            var u = it.adprogetti.zio.contracts.message.ChannelCodec.decodeBody(f,
+                    it.adprogetti.zio.contracts.message.ProjectionUpdate.class);
+            return u.projection().equals("tenders.list") && u.entityId().equals("all");
+        }, 10000);
+        assertThat(index).as("tenders.list index").isNotNull();
     }
 }

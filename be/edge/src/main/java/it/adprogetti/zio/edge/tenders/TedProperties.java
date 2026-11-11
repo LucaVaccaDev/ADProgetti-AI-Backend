@@ -24,7 +24,7 @@ public record TedProperties(boolean enabled, String apiUrl, String country, List
         maxPages = maxPages <= 0 ? 10 : maxPages;
         pause = pause == null ? Duration.ofSeconds(1) : pause;
         timeout = timeout == null ? Duration.ofSeconds(30) : timeout;
-        projectionLimit = projectionLimit <= 0 ? 80 : Math.min(projectionLimit, 200);
+        projectionLimit = projectionLimit <= 0 ? 1000 : Math.min(projectionLimit, 2000);
         titleKeywords = titleKeywords == null ? List.of() : List.copyOf(titleKeywords);
         for (String p : cpvPrefixes) {
             if (!p.matches("[0-9]{2,8}")) {

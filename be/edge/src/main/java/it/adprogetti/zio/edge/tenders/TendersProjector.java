@@ -10,8 +10,8 @@ import it.adprogetti.zio.edge.channel.OutboxService;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -19,8 +19,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * Sends {@code tenders.list} to the Hub: the tenders still open, soonest deadline first, trimmed to fit the Hub's size
- * limit. Public data only. Sent at every reconnection, after each sync, and when something changed.
+ * Sends {@code tenders.list} to the Hub: the tenders still open, soonest deadline first, in shards that each fit the
+ * Hub's size limit, then an index (see {@link TendersListProjection}). Public data only. Sent at every reconnection,
+ * after each sync, and when something changed; unchanged shards are not sent again.
  */
 @Service
 class TendersProjector {
@@ -33,7 +34,10 @@ class TendersProjector {
     private final TedProperties props;
     private final OutboxService outbox;
     private final Clock clock;
-    private final AtomicReference<String> lastSent = new AtomicReference<>();
+    /** Tenders per shard, at most (each shard is also cut by size). */
+    static final int SHARD_SIZE = 120;
+
+    private final Map<String, String> lastSent = new ConcurrentHashMap<>();
 
     TendersProjector(TenderStore store, TedProperties props, OutboxService outbox, Clock clock) {
         this.store = store;
@@ -56,7 +60,10 @@ class TendersProjector {
         publish(false);
     }
 
-    TendersListProjection build() {
+    record Built(List<TendersListProjection> shards, TendersListProjection index) {
+    }
+
+    Built build() {
         List<TendersListProjection.Tender> items = new ArrayList<>();
         for (TenderRow t : store.open(props.projectionLimit())) {
             String url = t.url() != null ? t.url()
@@ -75,12 +82,33 @@ class TendersProjector {
             sources.add(new TendersListProjection.SourceState(source,
                     state.finishedAt() == null ? null : state.finishedAt().toString(), state.status(), state.errorCode(), open));
         }
-        TendersListProjection full = new TendersListProjection(total, sources, items);
-        while (items.size() > 1 && Payloads.write(full).length() > MAX_JSON_CHARS) {
-            items.remove(items.size() - 1);
-            full = new TendersListProjection(total, sources, items);
+        List<List<TendersListProjection.Tender>> chunks = chunks(items);
+        List<TendersListProjection> shards = new ArrayList<>();
+        for (int i = 0; i < chunks.size(); i++) {
+            shards.add(new TendersListProjection(i, chunks.size(), total, List.of(), chunks.get(i)));
         }
-        return full;
+        return new Built(shards, new TendersListProjection(TendersListProjection.INDEX, chunks.size(), total, sources, List.of()));
+    }
+
+    /** Cuts the list into runs of at most {@link #SHARD_SIZE} tenders whose JSON stays under the size limit. */
+    static List<List<TendersListProjection.Tender>> chunks(List<TendersListProjection.Tender> items) {
+        List<List<TendersListProjection.Tender>> out = new ArrayList<>();
+        List<TendersListProjection.Tender> current = new ArrayList<>();
+        int size = 0;
+        for (var t : items) {
+            int own = Payloads.write(new TendersListProjection(0, 1, 0, List.of(), List.of(t))).length();
+            if (!current.isEmpty() && (current.size() >= SHARD_SIZE || size + own > MAX_JSON_CHARS - 2_000)) {
+                out.add(current);
+                current = new ArrayList<>();
+                size = 0;
+            }
+            current.add(t);
+            size += own;
+        }
+        if (!current.isEmpty()) {
+            out.add(current);
+        }
+        return out;
     }
 
     /** A run left RUNNING by a crash is closed, so the Hub never shows a run that cannot finish. */
@@ -94,16 +122,25 @@ class TendersProjector {
             return;
         }
         try {
-            String json = Payloads.write(build());
-            if (!force && Objects.equals(lastSent.get(), json)) {
-                return;
-            }
+            Built built = build();
             long version = clock.millis();
-            outbox.enqueue(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(ContractVersion.CURRENT,
-                    "tenders.list:" + version, "tenders.list", "all", version, json));
-            lastSent.set(json);
+            // Shards first, the index last: the Hub switches to the new list only when the index arrives.
+            for (TendersListProjection shard : built.shards()) {
+                send("s" + shard.shard(), shard, version, force);
+            }
+            send("all", built.index(), version, force);
         } catch (RuntimeException e) {
             log.warn("Tenders projection not published: {}", e.getClass().getSimpleName());
         }
+    }
+
+    private void send(String entity, TendersListProjection message, long version, boolean force) {
+        String json = Payloads.write(message);
+        if (!force && json.equals(lastSent.get(entity))) {
+            return;
+        }
+        outbox.enqueue(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(ContractVersion.CURRENT,
+                "tenders.list:" + entity + ":" + version, "tenders.list", entity, version, json));
+        lastSent.put(entity, json);
     }
 }

@@ -95,13 +95,13 @@ class PayloadsTest {
                 "https://ted.europa.eu/it/notice/-/detail/723217-2026");
         var sources = List.of(new TendersListProjection.SourceState("TED", "2026-11-11T05:30:00Z", "OK", null, 1),
                 new TendersListProjection.SourceState("EUROPACONCORSI", null, "FAILED", "EC_LOGIN_FAILED", 0));
-        var projection = new TendersListProjection(1, sources, List.of(tender));
+        var projection = new TendersListProjection(0, 2, 1, sources, List.of(tender));
         String json = Payloads.write(projection);
         assertThat(Payloads.read(json, TendersListProjection.class)).isEqualTo(projection);
         var many = java.util.Collections.nCopies(TendersListProjection.MAX_TENDERS + 50, tender);
-        assertThat(new TendersListProjection(many.size(), sources, many).tenders())
+        assertThat(new TendersListProjection(0, 1, many.size(), sources, many).tenders())
                 .hasSize(TendersListProjection.MAX_TENDERS);
-        assertThatThrownBy(() -> Payloads.read("{\"total\":1,\"extra\":1}", TendersListProjection.class))
+        assertThatThrownBy(() -> Payloads.read("{\"shard\":0,\"extra\":1}", TendersListProjection.class))
                 .isInstanceOf(InvalidPayloadException.class);
     }
 

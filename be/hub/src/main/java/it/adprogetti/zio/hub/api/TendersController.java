@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Published tenders found by the Edge (public data from TED), as a read-only projection. */
 @RestController
@@ -15,6 +17,8 @@ import tools.jackson.databind.json.JsonMapper;
 class TendersController {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
+    private static final int MAX_SHARDS = 20;
+    private static final int MAX_TENDERS = 2000;
 
     private final ProjectionService projections;
 
@@ -25,11 +29,28 @@ class TendersController {
     record TendersResponse(boolean available, Instant updatedAt, JsonNode data) {
     }
 
+    /**
+     * The Edge sends the list in shards plus an index (see TendersListProjection). The index says how many shards are
+     * current, so shards left over from a longer list are never read. A shard that has not arrived yet is skipped:
+     * the answer is then partial, never an error.
+     */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('TENDERS_WORK','TENDERS_ALL')")
     TendersResponse tenders() {
-        return projections.find("tenders.list", "all")
-                .map(p -> new TendersResponse(true, p.updatedAt(), MAPPER.readTree(p.data())))
-                .orElse(new TendersResponse(false, null, null));
+        var index = projections.find("tenders.list", "all");
+        if (index.isEmpty()) {
+            return new TendersResponse(false, null, null);
+        }
+        JsonNode head = MAPPER.readTree(index.get().data());
+        int shards = Math.max(0, Math.min(head.path("shards").asInt(0), MAX_SHARDS));
+        ArrayNode tenders = MAPPER.createArrayNode();
+        for (int i = 0; i < shards && tenders.size() < MAX_TENDERS; i++) {
+            projections.find("tenders.list", "s" + i).ifPresent(p -> MAPPER.readTree(p.data()).path("tenders").forEach(tenders::add));
+        }
+        ObjectNode data = MAPPER.createObjectNode();
+        data.set("total", head.path("total"));
+        data.set("sources", head.path("sources"));
+        data.set("tenders", tenders);
+        return new TendersResponse(true, index.get().updatedAt(), data);
     }
 }

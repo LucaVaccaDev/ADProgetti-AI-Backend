@@ -438,11 +438,34 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
         edge = FakeEdge.connect(port, rotateCredential());
-        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-1", "tenders.list", "all", 1,
-                "{\"total\":1,\"sources\":[{\"name\":\"TED\",\"syncedAt\":null,\"status\":\"OK\",\"errorCode\":null,\"open\":1}],\"tenders\":[]}"));
+        String t1 = "{\"id\":\"1-2026\",\"source\":\"TED\",\"title\":\"Uno\"}";
+        String t2 = "{\"id\":\"2-2026\",\"source\":\"TED\",\"title\":\"Due\"}";
+        String t3 = "{\"id\":\"3-2026\",\"source\":\"TED\",\"title\":\"Tre (blocco vecchio)\"}";
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-s0", "tenders.list", "s0", 1,
+                "{\"shard\":0,\"shards\":2,\"total\":2,\"sources\":[],\"tenders\":[" + t1 + "]}"));
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-s1", "tenders.list", "s1", 1,
+                "{\"shard\":1,\"shards\":2,\"total\":2,\"sources\":[],\"tenders\":[" + t2 + "]}"));
+        // a shard left over from an older, longer list: the index does not name it, so it must not be read
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-s2", "tenders.list", "s2", 1,
+                "{\"shard\":2,\"shards\":3,\"total\":3,\"sources\":[],\"tenders\":[" + t3 + "]}"));
+        Thread.sleep(800);
+        // shards without the index are not visible yet
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.available").value(false));
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-all", "tenders.list", "all", 1,
+                "{\"shard\":-1,\"shards\":2,\"total\":2,\"sources\":[{\"name\":\"TED\",\"syncedAt\":null,"
+                        + "\"status\":\"OK\",\"errorCode\":null,\"open\":2}],\"tenders\":[]}"));
         Thread.sleep(800);
         mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
-                .andExpect(jsonPath("$.available").value(true)).andExpect(jsonPath("$.data.sources[0].name").value("TED"));
+                .andExpect(jsonPath("$.available").value(true)).andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.sources[0].name").value("TED"))
+                .andExpect(jsonPath("$.data.tenders.length()").value(2))
+                .andExpect(jsonPath("$.data.tenders[0].id").value("1-2026"))
+                .andExpect(jsonPath("$.data.tenders[1].id").value("2-2026"));
+        // a missing shard gives a partial answer, not an error
+        jdbc.update("delete from projection where name = 'tenders.list' and entity_id = 's1'");
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.tenders.length()").value(1));
     }
 
     // --- jobs -------------------------------------------------------------------------------------
