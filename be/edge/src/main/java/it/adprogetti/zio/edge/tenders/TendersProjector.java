@@ -57,21 +57,36 @@ class TendersProjector {
     }
 
     TendersListProjection build() {
-        var state = store.syncState();
         List<TendersListProjection.Tender> items = new ArrayList<>();
         for (TenderRow t : store.open(props.projectionLimit())) {
-            items.add(new TendersListProjection.Tender(t.number(), t.title(), t.buyer(),
+            String url = t.url() != null ? t.url()
+                    : TenderStore.SOURCE_TED.equals(t.source()) ? "https://ted.europa.eu/it/notice/-/detail/" + t.number() : null;
+            items.add(new TendersListProjection.Tender(t.number(), t.source(), t.title(), t.buyer(),
                     t.amount() == null ? null : t.amount().doubleValue(), t.currency(),
                     t.deadline() == null ? null : t.deadline().toString(), t.published().toString(), t.procedure(), t.cpv(),
-                    t.place(), t.lots(), "https://ted.europa.eu/it/notice/-/detail/" + t.number()));
+                    t.place(), t.lots(), url));
         }
-        String syncedAt = state.finishedAt() == null ? null : state.finishedAt().toString();
-        TendersListProjection full = new TendersListProjection("TED", syncedAt, state.status(), store.openCount(), items);
+        List<TendersListProjection.SourceState> sources = new ArrayList<>();
+        int total = 0;
+        for (String source : List.of(TenderStore.SOURCE_TED, TenderStore.SOURCE_EC)) {
+            var state = store.syncState(source);
+            int open = store.openCount(source);
+            total += open;
+            sources.add(new TendersListProjection.SourceState(source,
+                    state.finishedAt() == null ? null : state.finishedAt().toString(), state.status(), state.errorCode(), open));
+        }
+        TendersListProjection full = new TendersListProjection(total, sources, items);
         while (items.size() > 1 && Payloads.write(full).length() > MAX_JSON_CHARS) {
             items.remove(items.size() - 1);
-            full = new TendersListProjection("TED", syncedAt, state.status(), store.openCount(), items);
+            full = new TendersListProjection(total, sources, items);
         }
         return full;
+    }
+
+    /** A run left RUNNING by a crash is closed, so the Hub never shows a run that cannot finish. */
+    @EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    void closeStale() {
+        store.closeStaleSync();
     }
 
     private void publish(boolean force) {

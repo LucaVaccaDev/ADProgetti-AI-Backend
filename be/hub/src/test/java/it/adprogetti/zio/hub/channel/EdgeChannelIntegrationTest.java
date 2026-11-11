@@ -439,10 +439,10 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
         edge = FakeEdge.connect(port, rotateCredential());
         edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-1", "tenders.list", "all", 1,
-                "{\"source\":\"TED\",\"syncedAt\":null,\"lastStatus\":\"OK\",\"total\":1,\"tenders\":[]}"));
+                "{\"total\":1,\"sources\":[{\"name\":\"TED\",\"syncedAt\":null,\"status\":\"OK\",\"errorCode\":null,\"open\":1}],\"tenders\":[]}"));
         Thread.sleep(800);
         mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
-                .andExpect(jsonPath("$.available").value(true)).andExpect(jsonPath("$.data.source").value("TED"));
+                .andExpect(jsonPath("$.available").value(true)).andExpect(jsonPath("$.data.sources[0].name").value("TED"));
     }
 
     // --- jobs -------------------------------------------------------------------------------------

@@ -12,6 +12,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 class TenderStore {
 
+    static final String SOURCE_TED = "TED";
+    static final String SOURCE_EC = "EUROPACONCORSI";
+
     record SyncState(String status, Instant finishedAt, int fetched, int added, String errorCode) {
     }
 
@@ -23,35 +26,65 @@ class TenderStore {
         this.clock = clock;
     }
 
-    /** @return true when the tender is new, false when an existing one was refreshed. */
+    /**
+     * Stores a tender. The same tender often appears in two sources: a Europaconcorsi row that looks like one already
+     * known from another source (same deadline day, similar title) is not added, and a new TED row replaces a similar
+     * Europaconcorsi one (TED carries the amount). @return true when the tender is new, false when an existing one
+     * was refreshed or the row was a duplicate.
+     */
     boolean upsert(TenderRow t) {
+        if (t.deadline() != null) {
+            List<String[]> others = otherSources(t);
+            for (String[] o : others) {
+                if (TitleSimilarity.similar(t.title(), o[1])) {
+                    if (SOURCE_EC.equals(t.source())) {
+                        return false;
+                    }
+                    jdbc.sql("delete from tender where notice_number = :n").param("n", o[0]).update();
+                }
+            }
+        }
         Timestamp now = Timestamp.from(clock.instant());
         return jdbc.sql("""
-                insert into tender (notice_number, title, buyer, amount, currency, deadline_at, published_on,
+                insert into tender (notice_number, source, url, title, buyer, amount, currency, deadline_at, published_on,
                     procedure_type, notice_type, cpv, place, lots, first_seen_at, last_seen_at)
-                values (:n, :ti, :b, :a, :c, :d, :p, :pr, :nt, :cpv, :pl, :l, :now, :now)
-                on conflict (notice_number) do update set title = :ti, buyer = :b, amount = :a, currency = :c,
+                values (:n, :src, :u, :ti, :b, :a, :c, :d, :p, :pr, :nt, :cpv, :pl, :l, :now, :now)
+                on conflict (notice_number) do update set title = :ti, buyer = :b, amount = :a, currency = :c, url = :u,
                     deadline_at = :d, procedure_type = :pr, notice_type = :nt, cpv = :cpv, place = :pl, lots = :l,
                     last_seen_at = :now
                 returning (xmax = 0)
-                """).param("n", t.number()).param("ti", t.title()).param("b", t.buyer()).param("a", t.amount())
-                .param("c", t.currency()).param("d", t.deadline() == null ? null : Timestamp.from(t.deadline()))
+                """).param("n", t.number()).param("src", t.source()).param("u", t.url()).param("ti", t.title())
+                .param("b", t.buyer()).param("a", t.amount()).param("c", t.currency())
+                .param("d", t.deadline() == null ? null : Timestamp.from(t.deadline()))
                 .param("p", java.sql.Date.valueOf(t.published())).param("pr", t.procedure()).param("nt", t.noticeType())
                 .param("cpv", String.join(" ", t.cpv())).param("pl", t.place()).param("l", t.lots()).param("now", now)
                 .query(Boolean.class).single();
     }
 
-    void startSync() {
-        jdbc.sql("update tender_sync set last_started_at = :t, last_status = 'RUNNING', error_code = null where id = 1")
-                .param("t", Timestamp.from(clock.instant())).update();
+    /** Number and title of the tenders from other sources whose deadline falls on the same day (Rome). */
+    private List<String[]> otherSources(TenderRow t) {
+        return jdbc.sql("""
+                select notice_number, title from tender
+                where source <> :src and (deadline_at at time zone 'Europe/Rome')::date = (:d at time zone 'Europe/Rome')::date
+                """).param("src", t.source()).param("d", Timestamp.from(t.deadline()))
+                .query((rs, i) -> new String[] { rs.getString(1), rs.getString(2) }).list();
     }
 
-    void finishSync(String status, int fetched, int added, String errorCode) {
+    private static int syncId(String source) {
+        return SOURCE_TED.equals(source) ? 1 : 2;
+    }
+
+    void startSync(String source) {
+        jdbc.sql("update tender_sync set last_started_at = :t, last_status = 'RUNNING', error_code = null where id = :i")
+                .param("t", Timestamp.from(clock.instant())).param("i", syncId(source)).update();
+    }
+
+    void finishSync(String source, String status, int fetched, int added, String errorCode) {
         jdbc.sql("""
                 update tender_sync set last_finished_at = :t, last_status = :s, fetched = :f, added = :a, error_code = :e
-                where id = 1
+                where id = :i
                 """).param("t", Timestamp.from(clock.instant())).param("s", status).param("f", fetched).param("a", added)
-                .param("e", errorCode).update();
+                .param("e", errorCode).param("i", syncId(source)).update();
     }
 
     /** A sync left RUNNING by a crash is closed, so the Hub never shows a run that cannot finish. */
@@ -60,16 +93,16 @@ class TenderStore {
                 + "where last_status = 'RUNNING'").param("t", Timestamp.from(clock.instant())).update();
     }
 
-    SyncState syncState() {
-        return jdbc.sql("select last_status, last_finished_at, fetched, added, error_code from tender_sync where id = 1")
-                .query((rs, i) -> new SyncState(rs.getString("last_status"),
+    SyncState syncState(String source) {
+        return jdbc.sql("select last_status, last_finished_at, fetched, added, error_code from tender_sync where id = :i")
+                .param("i", syncId(source)).query((rs, i) -> new SyncState(rs.getString("last_status"),
                         rs.getTimestamp("last_finished_at") == null ? null : rs.getTimestamp("last_finished_at").toInstant(),
                         rs.getInt("fetched"), rs.getInt("added"), rs.getString("error_code"))).single();
     }
 
-    int openCount() {
-        return jdbc.sql("select count(*) from tender where deadline_at is null or deadline_at >= :now")
-                .param("now", Timestamp.from(clock.instant())).query(Integer.class).single();
+    int openCount(String source) {
+        return jdbc.sql("select count(*) from tender where source = :s and (deadline_at is null or deadline_at >= :now)")
+                .param("s", source).param("now", Timestamp.from(clock.instant())).query(Integer.class).single();
     }
 
     /** Tenders still open, the soonest deadline first (no deadline last). */
@@ -83,7 +116,7 @@ class TenderStore {
                         rs.getTimestamp("deadline_at") == null ? null : rs.getTimestamp("deadline_at").toInstant(),
                         rs.getDate("published_on").toLocalDate(), rs.getString("procedure_type"), rs.getString("notice_type"),
                         rs.getString("cpv").isEmpty() ? List.of() : Arrays.asList(rs.getString("cpv").split(" ")),
-                        rs.getString("place"), rs.getInt("lots"))).list();
+                        rs.getString("place"), rs.getInt("lots"), rs.getString("source"), rs.getString("url"))).list();
     }
 
     /** Old closed tenders are not kept for ever: public data can always be fetched again. */

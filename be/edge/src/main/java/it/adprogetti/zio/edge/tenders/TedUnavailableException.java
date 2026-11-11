@@ -1,6 +1,6 @@
 package it.adprogetti.zio.edge.tenders;
 
-/** TED did not answer usefully. Only a short code is kept: no query, no response, no URL. */
+/** A tender source did not answer usefully. Only a short code is kept: no query, no response, no URL, no credentials. */
 class TedUnavailableException extends Exception {
 
     private final String code;

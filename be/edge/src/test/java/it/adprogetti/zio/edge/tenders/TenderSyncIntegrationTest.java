@@ -58,7 +58,7 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
         TED.reply = new it.adprogetti.zio.edge.support.StubTed.Reply(200, "not json");
         assertThatThrownBy(() -> sync.run(() -> { })).isInstanceOfSatisfying(TedUnavailableException.class,
                 e -> assertThat(e.code()).isEqualTo("TED_BAD_RESPONSE"));
-        assertThat(jdbc.queryForObject("select last_status from tender_sync", String.class)).isEqualTo("FAILED");
+        assertThat(jdbc.queryForObject("select last_status from tender_sync where id = 1", String.class)).isEqualTo("FAILED");
     }
 
     @Test
@@ -66,7 +66,8 @@ class TenderSyncIntegrationTest extends EdgeIntegrationTestBase {
         TED.reply = new it.adprogetti.zio.edge.support.StubTed.Reply(200, page());
         sync.run(() -> { });
         var projection = projector.build();
-        assertThat(projection.source()).isEqualTo("TED");
+        assertThat(projection.sources()).extracting(it.adprogetti.zio.contracts.payload.TendersListProjection.SourceState::name)
+                .containsExactly("TED", "EUROPACONCORSI");
         assertThat(projection.tenders()).allSatisfy(t -> assertThat(t.url()).startsWith("https://ted.europa.eu/"));
         assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(projection).length())
                 .isLessThan(TendersProjector.MAX_JSON_CHARS);

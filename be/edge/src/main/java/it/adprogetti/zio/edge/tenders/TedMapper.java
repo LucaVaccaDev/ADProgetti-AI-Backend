@@ -52,7 +52,7 @@ final class TedMapper {
         List<String> places = new ArrayList<>(new LinkedHashSet<>(texts(n.get("place-of-performance-city-lot"))));
         return Optional.of(new TenderRow(number, cut(title, 400), cut(localized(n.get("buyer-name")), 300), amount(n),
                 currency(n), deadline(n), published, cut(text(n.get("procedure-type")), 40), cut(noticeType, 40), cpv,
-                places.isEmpty() ? null : cut(places.get(0), 200), Math.max(1, lots.size())));
+                places.isEmpty() ? null : cut(places.get(0), 200), Math.max(1, lots.size()), TenderStore.SOURCE_TED, null));
     }
 
     /** "Italia – Servizi di ingegneria – Titolo": TED prefixes country and CPV description; only the last part is the title. */

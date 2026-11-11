@@ -58,7 +58,7 @@ public class TenderSyncService {
         if (!props.enabled()) {
             return new Result("DISABLED", 0, 0, 0, 0);
         }
-        store.startSync();
+        store.startSync(TenderStore.SOURCE_TED);
         int fetched = 0;
         int added = 0;
         int skipped = 0;
@@ -83,13 +83,13 @@ public class TenderSyncService {
                 pause();
             }
             store.purgeClosedBefore(clock.instant().minus(KEEP_CLOSED));
-            store.finishSync("OK", fetched, added, null);
+            store.finishSync(TenderStore.SOURCE_TED, "OK", fetched, added, null);
             return new Result("OK", fetched, added, skipped, Math.min(page, props.maxPages()));
         } catch (TedUnavailableException e) {
-            store.finishSync("FAILED", fetched, added, e.code());
+            store.finishSync(TenderStore.SOURCE_TED, "FAILED", fetched, added, e.code());
             throw e;
         } catch (RuntimeException e) {
-            store.finishSync("FAILED", fetched, added, e instanceof it.adprogetti.zio.edge.jobs.JobCancelledException
+            store.finishSync(TenderStore.SOURCE_TED, "FAILED", fetched, added, e instanceof it.adprogetti.zio.edge.jobs.JobCancelledException
                     ? "CANCELLED" : "EXECUTION_ERROR");
             throw e;
         } finally {

@@ -38,6 +38,8 @@ import org.testcontainers.utility.DockerImageName;
         "edge.ai.freellmapi.daily-limit-per-user=3",
         "edge.docs.index-roots[0]=documenti:/docs-index",
         "edge.tenders.pause=0s",
+        "edge.tenders.europaconcorsi.pause=1s",
+        "edge.tenders.europaconcorsi.categories.200025=Affidamento d'incarico",
         "edge.jobs.workers=3",
         "edge.jobs.poll-interval=50ms",
         "edge.jobs.lease=1s",
@@ -57,6 +59,7 @@ public abstract class EdgeIntegrationTestBase {
     protected static final StubOllama OLLAMA;
     protected static final StubFreeLlmApi FREELLM;
     protected static final StubTed TED;
+    protected static final StubEuropaconcorsi EC;
 
     /** A fake NAS on the local disk: four shares, one share that is not mounted, and a folder outside them. */
     protected static final java.nio.file.Path NAS;
@@ -76,6 +79,7 @@ public abstract class EdgeIntegrationTestBase {
             OLLAMA = new StubOllama();
             FREELLM = new StubFreeLlmApi();
             TED = new StubTed();
+            EC = new StubEuropaconcorsi();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -92,6 +96,7 @@ public abstract class EdgeIntegrationTestBase {
         registry.add("edge.ai.ollama-url", OLLAMA::url);
         registry.add("edge.ai.freellmapi.url", FREELLM::url);
         registry.add("edge.tenders.api-url", TED::url);
+        registry.add("edge.tenders.europaconcorsi.base-url", EC::url);
         for (String share : new String[] { "archivio", "gare", "documenti", "temporanea" }) {
             registry.add("edge.nas.shares." + share + ".mount", () -> NAS.resolve(share).toString());
         }
@@ -139,6 +144,8 @@ public abstract class EdgeIntegrationTestBase {
             InMemorySecretStore store = new InMemorySecretStore();
             store.put(SecretNames.HUB_EDGE_KEY, EDGE_KEY);
             store.put(SecretNames.FREELLMAPI_KEY, "freellmapi-test-key");
+            store.put(SecretNames.EUROPACONCORSI_USER, StubEuropaconcorsi.USER);
+            store.put(SecretNames.EUROPACONCORSI_PASSWORD, StubEuropaconcorsi.PASSWORD);
             store.put(SecretNames.HUB_COMMAND_PUBLIC_KEY,
                     Base64.getEncoder().encodeToString(HUB_KEYS.getPublic().getEncoded()));
             return store;
