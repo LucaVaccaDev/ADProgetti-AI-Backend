@@ -89,6 +89,21 @@ class AuthAndUsersTest extends IntegrationTestBase {
     }
 
     @Test
+    void theUserListShowsTheLastLoginButNeverTheHash() throws Exception {
+        String admin = bearer(accessToken("admin"));
+        String body = mvc.perform(get("/api/admin/users").header("Authorization", admin)).andReturn().getResponse()
+                .getContentAsString();
+        assertThat(body).doesNotContain("passwordHash").doesNotContain("password_hash");
+        JsonNode users = json.readTree(body);
+        for (JsonNode u : users) {
+            assertThat(u.has("lastLoginAt")).isTrue();
+            if (u.get("username").asString().equals("admin")) {
+                assertThat(u.get("lastLoginAt").isNull()).isFalse();
+            }
+        }
+    }
+
+    @Test
     void loginReturnsTokenAndSecureCookie() throws Exception {
         MvcResult result = login("admin", PASSWORD);
         assertThat(result.getResponse().getStatus()).isEqualTo(200);

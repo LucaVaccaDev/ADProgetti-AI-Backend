@@ -84,6 +84,10 @@ public class UserAccount {
         return displayName;
     }
 
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
     public String getEmail() {
         return email;
     }
