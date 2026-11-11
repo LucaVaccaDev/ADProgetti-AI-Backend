@@ -8,6 +8,10 @@ Recepito in D-13. **Grafica v1.2 realizzata nel frontend (D-14, commit `86b8e53`
 
 **Postgres:** la 5432 è occupata dal Postgres dell'utenza `lucavacca`; il nostro cluster `~/pgdata` gira sulla **5433** (`pg_ctl -D ~/pgdata -o "-p 5433" start`) e il `.env` punta lì.
 
+## Raccolta gare da TED (11/11/2026, D-17)
+
+Fatto: connettore TED sull'Edge (job `TENDERS_SYNC`, 06:30 e a mano), proiezione `tenders.list`, `GET /api/tenders` sull'Hub, pagina Gare collegata con pulsante «Aggiorna da TED» (amministratore). Test verdi (Edge, Hub, 108 Vitest). **Da fare per vederle:** riavviare Hub ed Edge (migrazione V6), accedere con un utente con ruolo Responsabile gare o Collaboratore, premere «Aggiorna da TED» come amministratore (o attendere le 06:30). Poi: seconda fonte ANAC open data (sotto soglia), analisi documenti e fattibilità.
+
 ## Ripartenza dall'11/11/2026
 
 **Fatto il 10/11:** canale Hub↔Edge funzionante (T-40); tutto sull'utenza `aihub`, Postgres in `~/pgdata`; prova NAS in sola lettura sull'SSD (T-41); `nas.list` fino alla pagina `/admin/nas` (T-42); FreeLLMAPI nel gateway AI, chiave nel portachiavi, catena TESTO con 46 modelli (T-43); indice documentale PDF con PDFBox, `docs.search` e pagina `/admin/docs` (T-44, commit `20e2674`). Test: 286 backend, 39 frontend, tutti verdi.

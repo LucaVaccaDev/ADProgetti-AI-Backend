@@ -89,6 +89,21 @@ class PayloadsTest {
     }
 
     @Test
+    void tendersListRoundTripsAndIsBounded() {
+        var tender = new TendersListProjection.Tender("723217-2026", "Servizio di ingegneria", "Ente", 566082.62, "EUR",
+                "2026-11-10T09:00:00Z", "2026-10-20", "open", List.of("71000000"), "Cormòns", 1,
+                "https://ted.europa.eu/it/notice/-/detail/723217-2026");
+        var projection = new TendersListProjection("TED", "2026-11-11T05:30:00Z", "OK", 1, List.of(tender));
+        String json = Payloads.write(projection);
+        assertThat(Payloads.read(json, TendersListProjection.class)).isEqualTo(projection);
+        var many = java.util.Collections.nCopies(TendersListProjection.MAX_TENDERS + 50, tender);
+        assertThat(new TendersListProjection("TED", null, "OK", many.size(), many).tenders())
+                .hasSize(TendersListProjection.MAX_TENDERS);
+        assertThatThrownBy(() -> Payloads.read("{\"source\":\"TED\",\"extra\":1}", TendersListProjection.class))
+                .isInstanceOf(InvalidPayloadException.class);
+    }
+
+    @Test
     void nasListPayloadIsBoundedAndNeverCarriesAMode() {
         assertThat(Payloads.parse(CommandType.NAS_LIST, "")).isEqualTo(new NasListPayload("", 0, 100));
         assertThat(new NasListPayload("gare:/GARE 2025", 10, 5000).limit()).isEqualTo(NasListPayload.MAX_LIMIT);

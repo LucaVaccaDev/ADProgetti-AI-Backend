@@ -12,9 +12,12 @@ class EdgeArchitectureTest {
 
     private static final String BASE = "it.adprogetti.zio.edge.";
 
-    /** D-04: outbound HTTP is allowed only to local AI services, and only from the ai package. */
+    /**
+     * D-04: outbound HTTP is allowed only to local AI services from the ai package, plus (D-17) the public TED search
+     * API from the tenders package, which carries no studio data.
+     */
     @ArchTest
-    static final ArchRule http_clients_only_in_ai = noClasses().that().resideOutsideOfPackage(BASE + "ai..")
+    static final ArchRule http_clients_only_in_ai = noClasses().that().resideOutsideOfPackages(BASE + "ai..", BASE + "tenders..")
             .should().dependOnClassesThat().resideInAnyPackage("java.net.http..",
                     "org.springframework.web.client..", "org.apache.hc..");
 

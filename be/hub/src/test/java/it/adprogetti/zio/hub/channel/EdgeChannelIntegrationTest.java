@@ -428,6 +428,23 @@ class EdgeChannelIntegrationTest extends IntegrationTestBase {
         assertThat(expectCommand(edge).command().id()).isEqualTo(id);
     }
 
+    // --- tenders ----------------------------------------------------------------------------------
+
+    @Test
+    void tendersAreAProjectionOnlyForWhoWorksOnTenders() throws Exception {
+        mvc.perform(get("/api/tenders")).andExpect(status().isUnauthorized());
+        // D-06: an administrator without the tender manager role does not see tenders
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("admin"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
+        edge = FakeEdge.connect(port, rotateCredential());
+        edge.send(ChannelEnvelope.Kind.PROJECTION, new ProjectionUpdate(1, "t-1", "tenders.list", "all", 1,
+                "{\"source\":\"TED\",\"syncedAt\":null,\"lastStatus\":\"OK\",\"total\":1,\"tenders\":[]}"));
+        Thread.sleep(800);
+        mvc.perform(get("/api/tenders").header("Authorization", bearer("mario")))
+                .andExpect(jsonPath("$.available").value(true)).andExpect(jsonPath("$.data.source").value("TED"));
+    }
+
     // --- jobs -------------------------------------------------------------------------------------
 
     @Test

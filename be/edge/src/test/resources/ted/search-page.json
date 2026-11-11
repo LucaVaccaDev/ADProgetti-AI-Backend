@@ -1,0 +1,125 @@
+{
+ "notices": [
+  {
+   "deadline-receipt-tender-date-lot": [
+    "2026-12-04+01:00"
+   ],
+   "notice-type": "cn-standard",
+   "publication-number": "756813-2026",
+   "estimated-value-lot": [
+    "4919384.00"
+   ],
+   "estimated-value-cur-lot": [
+    "EUR"
+   ],
+   "estimated-value-cur-proc": "EUR",
+   "place-of-performance-city-lot": [
+    "MONZA (MB)"
+   ],
+   "deadline-receipt-tender-time-lot": [
+    "23:59:00+01:00"
+   ],
+   "procedure-type": "open",
+   "classification-cpv": [
+    "33693000",
+    "71900000",
+    "50400000",
+    "33693000",
+    "71900000",
+    "50400000"
+   ],
+   "buyer-name": {
+    "ita": [
+     "Area Approvvigionamenti Beni e Servizi - Settore Gare Beni e Servizi: Ufficio Gare, Ufficio Procedure Negoziate"
+    ]
+   },
+   "publication-date": "2026-11-02+01:00",
+   "estimated-value-proc": "4919384.00",
+   "identifier-lot": [
+    "LOT-0001"
+   ],
+   "notice-title": {
+    "ita": "Italia – Altri medicinali terapeutici – Servizio di gestione del ciclotrone, dei laboratori e degli impianti annessi e fornitura di radiofarmaci per un periodo di otto anni",
+    "eng": "Italy – Other therapeutic products – Servizio di gestione del ciclotrone, dei laboratori e degli impianti annessi e fornitura di radiofarmaci per un periodo di otto anni"
+   }
+  },
+  {
+   "deadline-receipt-tender-date-lot": [
+    "2026-12-02+01:00"
+   ],
+   "notice-type": "cn-standard",
+   "publication-number": "757165-2026",
+   "estimated-value-lot": [
+    "237581.33"
+   ],
+   "estimated-value-cur-lot": [
+    "EUR"
+   ],
+   "estimated-value-cur-proc": "EUR",
+   "place-of-performance-city-lot": [
+    "ISOLA DI CAPO RIZZUTO"
+   ],
+   "deadline-receipt-tender-time-lot": [
+    "12:00:00+01:00"
+   ],
+   "procedure-type": "open",
+   "classification-cpv": [
+    "71240000",
+    "71240000"
+   ],
+   "buyer-name": {
+    "ita": [
+     "INVITALIA AGENZIA NAZIONALE PER L'ATTRAZIONE DEGLI INVESTIMENTI E LO SVILUPPO D'IMPRESA"
+    ]
+   },
+   "publication-date": "2026-11-02+01:00",
+   "estimated-value-proc": "237581.33",
+   "identifier-lot": [
+    "LOT-0001"
+   ],
+   "notice-title": {
+    "ita": "Italia – Servizi architettonici, di ingegneria e pianificazione – SA DELEGATA CNA-PROCEDURA DI GARA APERTA AFFIDAMENTO DEI SERVIZI TECNICI DI PROGETTAZIONE DI FATTIBILITÀ TECNICA ED ECONOMICA,PIANIFICAZIONE DI INDAGINI E RILIEVI, ESECUZIONE DI INDAGINI E RILIEVI,PROGETTAZIONE ESECUTIVA E COORDINAMENTO DELLA SICUREZZA IN FASE DI PROGETTAZIONE",
+    "eng": "Italy – Architectural, engineering and planning services – SA DELEGATA CNA-PROCEDURA DI GARA APERTA AFFIDAMENTO DEI SERVIZI TECNICI DI PROGETTAZIONE DI FATTIBILITÀ TECNICA ED ECONOMICA,PIANIFICAZIONE DI INDAGINI E RILIEVI, ESECUZIONE DI INDAGINI E RILIEVI,PROGETTAZIONE ESECUTIVA E COORDINAMENTO DELLA SICUREZZA IN FASE DI PROGETTAZIONE"
+   }
+  },
+  {
+   "deadline-receipt-tender-date-lot": [
+    "2026-12-04+01:00"
+   ],
+   "notice-type": "cn-standard",
+   "publication-number": "757402-2026",
+   "estimated-value-lot": [
+    "585252.22"
+   ],
+   "estimated-value-cur-lot": [
+    "EUR"
+   ],
+   "estimated-value-cur-proc": "EUR",
+   "deadline-receipt-tender-time-lot": [
+    "20:00:00+01:00"
+   ],
+   "procedure-type": "open",
+   "classification-cpv": [
+    "71221000",
+    "71240000"
+   ],
+   "buyer-name": {
+    "ita": [
+     "ISTITUTO ZOOPROFILATTICO SPERIMENTALE DELLA PUGLIA E DELLA BASILICATA R"
+    ]
+   },
+   "publication-date": "2026-11-02+01:00",
+   "estimated-value-proc": "585252.22",
+   "identifier-lot": [
+    "LOT-0001"
+   ],
+   "notice-title": {
+    "ita": "Italia – Servizi di progettazione di edifici – PROCEDURA APERTA PER AFFIDAMENTO DI PROGETTO DI FATTIBILITA TECNICO ECONOMICA, PROGETTAZIONE ESECUTIVA, COORDINAMENTO IN FASE DI PROGETTAZIONE E DI ESECUZIONE PROGETTO DI AMPLIAMENTO SEDE DI PUTIGNANO",
+    "eng": "Italy – Architectural services for buildings – PROCEDURA APERTA PER AFFIDAMENTO DI PROGETTO DI FATTIBILITA TECNICO ECONOMICA, PROGETTAZIONE ESECUTIVA, COORDINAMENTO IN FASE DI PROGETTAZIONE E DI ESECUZIONE PROGETTO DI AMPLIAMENTO SEDE DI PUTIGNANO"
+   }
+  }
+ ],
+ "totalNoticeCount": 3,
+ "iterationNextToken": null,
+ "timedOut": false
+}
