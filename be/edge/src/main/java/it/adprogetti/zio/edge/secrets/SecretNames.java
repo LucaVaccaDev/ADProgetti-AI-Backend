@@ -10,6 +10,8 @@ public final class SecretNames {
 
     /** Unified FreeLLMAPI key ({@code freellmapi-...}): the only key the Edge holds for external AI (Allegato A.4). */
     public static final String FREELLMAPI_KEY = "freellmapi-key";
+    public static final String EUROPACONCORSI_USER = "europaconcorsi-user";
+    public static final String EUROPACONCORSI_PASSWORD = "europaconcorsi-password";
 
     private SecretNames() {
     }
