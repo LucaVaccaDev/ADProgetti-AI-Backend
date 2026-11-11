@@ -1,6 +1,16 @@
 # Stato dei lavori e ripartenza
 
-Aggiornato l'11/11/2026. Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
+Aggiornato l'11/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE.md`, `docs/FEATURE_STATUS.md` e `docs/DECISION_LOG.md` (ultime voci T-40…T-44).
+
+## Ripartenza del 12/11/2026 — gare e requisiti (D-23…D-29)
+
+**Fatto l'11/11:** archivio referenze (import Excel, approvazione, finestre 3/5/10 anni), lettura dei disciplinari caricati in `/Volumes/AI/BANDI PROVVISORI` (file sciolti, abbinati per numero EC-xxxxxx o titolo; `.p7m` aperti; cancellati dopo la lettura; AI esterna solo per documenti pubblici). Ultimo commit: `e944d8f`. Edge riavviato con profilo `ssdtest`.
+
+**Risultati letti:** EC-573910 (16° Stormo): importo € 598.011,83, OEPV, scadenza nel documento 06/11 contro 12/11 nel DB (da decidere quale vale); requisiti vaghi e non verificati. EC-572557 (Acqua Novara): € 3.000.000, OEPV, 9 servizi, 13 figure, 18 documenti, quasi tutto verificato; scadenza non trovata. Naturno (EC-572701) incompleta: da ricaricare (con il bando) per provare la rilettura dimezzata.
+
+**Da fare domani:** (1) approvare le referenze sulla pagina Referenze (ora 26 da approvare, 3 da verificare, 0 approvate); (2) comando `tenders.compare` sull'Edge (servizi per ID opera/anni, fatturato provvisorio, personale da adprogetti.it, mai partner/RTP); (3) sezione Requisiti nella scheda gara con citazione e pagina, pulsante «Carica»; (4) test sulle due gare e aggiornamento di FEATURE_STATUS e DECISION_LOG. Scelte da confermare: scadenza di EC-573910, e se partire con le referenze non ancora approvate.
+
+**Lavori a mano:** i lavori `TENDER_DOCS_READ` si lanciano da Amministrazione → Lavori, oppure inserendo una riga nella tabella `job` dell'Edge.
 
 ## Capitolato v1.2 (11/11/2026)
 
