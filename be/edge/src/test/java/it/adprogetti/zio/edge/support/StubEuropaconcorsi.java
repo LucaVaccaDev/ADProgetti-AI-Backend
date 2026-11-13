@@ -32,6 +32,8 @@ public final class StubEuropaconcorsi {
     public final java.util.Map<String, Long> announcedSize = new java.util.concurrent.ConcurrentHashMap<>();
     /** When true every list request is answered with a redirect to the login. */
     public volatile boolean sessionExpires;
+    /** When true the next tender page is answered with a redirect to the login (the portal ended the session), once. */
+    public volatile boolean expireSessionOnce;
     /** When true the login is refused whatever the credentials. */
     public volatile boolean rejectLogin;
 
@@ -53,6 +55,7 @@ public final class StubEuropaconcorsi {
         files.clear();
         announcedSize.clear();
         sessionExpires = false;
+        expireSessionOnce = false;
         rejectLogin = false;
         requests.clear();
     }
@@ -90,7 +93,9 @@ public final class StubEuropaconcorsi {
                 send(ex, 200, page.apply(URLDecoder.decode(full, StandardCharsets.UTF_8)), null);
             }
         } else if (path.startsWith("/bandi/")) {
-            if (!loggedIn || sessionExpires) {
+            boolean once = expireSessionOnce;
+            expireSessionOnce = false;
+            if (!loggedIn || sessionExpires || once) {
                 ex.getResponseHeaders().add("Location", "/login");
                 send(ex, 302, "", null);
             } else {

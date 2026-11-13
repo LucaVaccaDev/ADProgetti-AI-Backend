@@ -195,4 +195,24 @@ class TenderDocsFetchTest extends EdgeIntegrationTestBase {
         // no path, no content: only names and sizes
         assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(byId.get("EC-900111"))).doesNotContain("archivio");
     }
+
+    @Test
+    void aSessionEndedByThePortalIsReopenedOnceAndASecondLossStopsTheRun() throws Exception {
+        tender("EC-900121", "now() + interval '10 days'");
+        tender("EC-900122", "now() + interval '11 days'");
+        EC.files.put("d.pdf", TestPdfs.text(PAGE1));
+        EC.tenderPage = path -> page("d.pdf");
+        EC.expireSessionOnce = true;
+        var r = fetch.run(() -> { }, "sistema");
+        assertThat(r.documents()).isEqualTo(2); // both tenders were done after one new login
+        assertThat(EC.requests().stream().filter(x -> x.startsWith("POST /people/login")).count()).isEqualTo(2);
+
+        jdbc.update("delete from tender_document");
+        jdbc.update("update tender set doc_status = null");
+        EC.sessionExpires = true;
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> fetch.run(() -> { }, "sistema"))
+                .isInstanceOf(TedUnavailableException.class).extracting(e -> ((TedUnavailableException) e).code())
+                .isEqualTo("EC_SESSION_LOST");
+        assertThat(EC.requests().stream().filter(x -> x.startsWith("POST /people/login")).count()).isEqualTo(4); // 2 + 2, no loop
+    }
 }

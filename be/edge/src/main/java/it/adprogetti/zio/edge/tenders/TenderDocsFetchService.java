@@ -60,11 +60,29 @@ public class TenderDocsFetchService {
         List<String> toFetch = ecProps.enabled() && client.hasCredentials() ? candidates() : List.of();
         if (!toFetch.isEmpty()) {
             var session = client.login();
+            boolean relogged = false;
             for (String notice : toFetch) {
                 checkpoint.run();
                 pause();
                 tenders++;
-                Outcome o = fetchOne(session, notice);
+                Outcome o;
+                try {
+                    o = fetchOne(session, notice);
+                } catch (TedUnavailableException e) {
+                    // The portal may end a session in the middle of a run: log in once more and retry this tender; a
+                    // second loss stops the run (never hammer the portal, never loop on a refused login).
+                    if (!"EC_LOGIN_FAILED".equals(e.code()) || relogged) {
+                        throw "EC_LOGIN_FAILED".equals(e.code()) ? new TedUnavailableException("EC_SESSION_LOST", false) : e;
+                    }
+                    relogged = true;
+                    pause();
+                    session = client.login();
+                    try {
+                        o = fetchOne(session, notice);
+                    } catch (TedUnavailableException again) {
+                        throw "EC_LOGIN_FAILED".equals(again.code()) ? new TedUnavailableException("EC_SESSION_LOST", false) : again;
+                    }
+                }
                 fetched += o.documents > 0 ? 1 : 0;
                 documents += o.documents;
                 notAvailable += o.notAvailable ? 1 : 0;
