@@ -24,6 +24,12 @@ public final class StubEuropaconcorsi {
     private final List<String> requests = new CopyOnWriteArrayList<>();
     /** Page body by request path and query (e.g. {@code /search?country_code=it&category_id=200025&...&page=1}). */
     public volatile Function<String, String> page;
+    /** Page of one tender ({@code /bandi/<id>}, needs the login) by path. */
+    public volatile Function<String, String> tenderPage;
+    /** Attached files served at {@code /files/<name>} (public, like the portal's file server), by name. */
+    public final java.util.Map<String, byte[]> files = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Content-Length announced for a file name instead of its real size (to test the size cap). */
+    public final java.util.Map<String, Long> announcedSize = new java.util.concurrent.ConcurrentHashMap<>();
     /** When true every list request is answered with a redirect to the login. */
     public volatile boolean sessionExpires;
     /** When true the login is refused whatever the credentials. */
@@ -43,6 +49,9 @@ public final class StubEuropaconcorsi {
 
     public void reset() {
         page = path -> "<html><body><div class=\"competitions\"></div></body></html>";
+        tenderPage = path -> "<html><body>nessun allegato</body></html>";
+        files.clear();
+        announcedSize.clear();
         sessionExpires = false;
         rejectLogin = false;
         requests.clear();
@@ -79,6 +88,26 @@ public final class StubEuropaconcorsi {
                 send(ex, 302, "", null);
             } else {
                 send(ex, 200, page.apply(URLDecoder.decode(full, StandardCharsets.UTF_8)), null);
+            }
+        } else if (path.startsWith("/bandi/")) {
+            if (!loggedIn || sessionExpires) {
+                ex.getResponseHeaders().add("Location", "/login");
+                send(ex, 302, "", null);
+            } else {
+                send(ex, 200, tenderPage.apply(path), null);
+            }
+        } else if (path.startsWith("/files/")) {
+            byte[] data = files.get(path.substring("/files/".length()));
+            if (data == null) {
+                send(ex, 404, "", null);
+            } else {
+                ex.getResponseHeaders().add("Content-Type", "application/pdf");
+                long length = announcedSize.getOrDefault(path.substring("/files/".length()), (long) data.length);
+                ex.sendResponseHeaders(200, length);
+                if (length == data.length) {
+                    ex.getResponseBody().write(data);
+                }
+                ex.close();
             }
         } else {
             send(ex, 404, "", null);

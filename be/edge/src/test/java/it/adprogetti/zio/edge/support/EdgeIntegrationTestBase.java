@@ -39,6 +39,7 @@ import org.testcontainers.utility.DockerImageName;
         "edge.docs.index-roots[0]=documenti:/docs-index",
         "edge.tenders.pause=0s",
         "edge.tenders.docs.inbox=target/test-inbox",
+        "edge.tenders.docs.fetch-pause=1s",
         "edge.tenders.europaconcorsi.pause=1s",
         "edge.tenders.europaconcorsi.categories.200025=Affidamento d'incarico",
         "edge.jobs.workers=3",

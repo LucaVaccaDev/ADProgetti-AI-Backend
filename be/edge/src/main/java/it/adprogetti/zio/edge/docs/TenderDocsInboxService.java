@@ -21,8 +21,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 /**
- * Reads the tender documents the user dropped in the inbox, then deletes them: a document is read once and never kept
- * (the committente's rule, 11/11/2026). Files can sit loose in the inbox: the tender is found from a tender number in the
+ * Reads the tender documents the user dropped in the inbox and moves them to the library, where they stay until the
+ * tender expires (D-30; before, D-29 deleted them after reading). Files can sit loose in the inbox: the tender is found from a tender number in the
  * file name or from the words of its title in the first pages ({@link TenderMatcher}); a file that cannot be assigned
  * with certainty stays where it is and is reported. A sub-folder named after a tender number still works and decides the
  * tender by itself. A file is accepted only if it is a regular file (no links), within the size cap, and a real PDF or a
@@ -43,15 +43,17 @@ public class TenderDocsInboxService {
     private final TenderDocsProperties props;
     private final TenderDocumentAnalyzer analyzer;
     private final TenderMatcher matcher;
+    private final TenderDocumentLibrary library;
     private final JdbcClient jdbc;
     private final EdgeAudit audit;
     private final Clock clock;
 
     TenderDocsInboxService(TenderDocsProperties props, TenderDocumentAnalyzer analyzer, TenderMatcher matcher,
-            JdbcClient jdbc, EdgeAudit audit, Clock clock) {
+            TenderDocumentLibrary library, JdbcClient jdbc, EdgeAudit audit, Clock clock) {
         this.props = props;
         this.analyzer = analyzer;
         this.matcher = matcher;
+        this.library = library;
         this.jdbc = jdbc;
         this.audit = audit;
         this.clock = clock;
@@ -89,7 +91,7 @@ public class TenderDocsInboxService {
             Acc a = e.getValue();
             if (!a.parts.isEmpty() || a.failed) {
                 String status = a.parts.isEmpty() ? "FALLITA" : a.incomplete || a.failed ? "INCOMPLETA" : "ANALIZZATA";
-                store(e.getKey(), status, a, requestedBy);
+                store(e.getKey(), status, a, requestedBy, "CARICATO");
             }
         }
         cleanEmptyFolders();
@@ -181,7 +183,16 @@ public class TenderDocsInboxService {
         } else {
             n.analysed++;
         }
-        delete(file); // read once, then gone
+        if (bytes != null) {
+            // kept until the tender expires (D-30); the inbox copy goes once the library has it (or already had it)
+            boolean kept = library.store(notice, file.getFileName().toString(), bytes, "CARICATO", null).isPresent()
+                    || library.has(notice, bytes);
+            if (!kept) {
+                n.waiting++;
+                return;
+            }
+        }
+        delete(file);
     }
 
     /** Files in known tender sub-folders (the folder decides), then the loose files of the inbox. */
@@ -267,15 +278,66 @@ public class TenderDocsInboxService {
                 .single() > 0;
     }
 
-    private void store(String notice, String status, Acc a, String requestedBy) {
+    /**
+     * Reads the documents already kept for a tender (downloaded or uploaded) and stores the merged result. When the AI
+     * provider does not answer nothing is stored, so the next run reads them again. @return the status stored, or
+     * {@code "IN_ATTESA"} when nothing was stored.
+     */
+    public String analyzeStored(String notice, String requestedBy) {
+        Acc a = new Acc();
+        String origin = "CARICATO";
+        int usable = 0;
+        for (var doc : library.list(notice)) {
+            var path = library.file(doc);
+            if (path.isEmpty()) {
+                continue;
+            }
+            byte[] bytes;
+            try {
+                bytes = Files.readAllBytes(path.get());
+            } catch (IOException e) {
+                continue;
+            }
+            var read = analyzer.read(new ByteArrayInputStream(bytes));
+            TenderDocumentAnalyzer.Result r = read.doc() == null
+                    ? TenderDocumentAnalyzer.Result.failed(read.errorCode(), null, 0)
+                    : analyzer.analyze(read.doc(), requestedBy);
+            if ("FALLITA".equals(r.status()) && r.errorCode() != null && r.errorCode().startsWith("AI_")) {
+                return "IN_ATTESA"; // the provider did not answer: nothing stored, tried again at the next run
+            }
+            usable++;
+            origin = "SCARICATO".equals(doc.origin()) ? "SCARICATO" : origin;
+            a.sha = a.sha == null ? r.sha256() : a.sha;
+            a.pages += r.pages();
+            a.model = r.model() != null ? r.model() : a.model;
+            if (r.requirements() != null) {
+                a.parts.add(r.requirements());
+            }
+            if ("INCOMPLETA".equals(r.status())) {
+                a.incomplete = true;
+                a.errorCode = r.errorCode();
+            } else if ("FALLITA".equals(r.status())) {
+                a.failed = true;
+                a.errorCode = r.errorCode();
+            }
+        }
+        if (usable == 0) {
+            return "IN_ATTESA";
+        }
+        String status = a.parts.isEmpty() ? "FALLITA" : a.incomplete || a.failed ? "INCOMPLETA" : "ANALIZZATA";
+        store(notice, status, a, requestedBy, origin);
+        return status;
+    }
+
+    private void store(String notice, String status, Acc a, String requestedBy, String source) {
         TenderRequirements req = a.parts.isEmpty() ? null : TenderRequirements.merge(a.parts);
         jdbc.sql("""
                 insert into tender_analysis (notice_number, status, source, doc_sha256, pages, result_json, model,
                     error_code, requested_by, analysed_at)
-                values (:n, :s, 'CARICATO', :h, :p, :j, :m, :e, :u, :t)
-                on conflict (notice_number) do update set status = :s, source = 'CARICATO', doc_sha256 = :h, pages = :p,
+                values (:n, :s, :src, :h, :p, :j, :m, :e, :u, :t)
+                on conflict (notice_number) do update set status = :s, source = :src, doc_sha256 = :h, pages = :p,
                     result_json = :j, model = :m, error_code = :e, requested_by = :u, analysed_at = :t""")
-                .param("n", notice).param("s", status).param("h", a.sha).param("p", a.pages)
+                .param("n", notice).param("s", status).param("src", source).param("h", a.sha).param("p", a.pages)
                 .param("j", req == null ? null : Payloads.write(req)).param("m", a.model).param("e", a.errorCode)
                 .param("u", requestedBy).param("t", Timestamp.from(clock.instant())).update();
     }

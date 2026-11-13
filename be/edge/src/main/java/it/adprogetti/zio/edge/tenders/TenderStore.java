@@ -20,10 +20,12 @@ class TenderStore {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final it.adprogetti.zio.edge.docs.TenderDocumentLibrary library;
 
-    TenderStore(JdbcClient jdbc, Clock clock) {
+    TenderStore(JdbcClient jdbc, Clock clock, it.adprogetti.zio.edge.docs.TenderDocumentLibrary library) {
         this.jdbc = jdbc;
         this.clock = clock;
+        this.library = library;
     }
 
     /**
@@ -125,9 +127,14 @@ class TenderStore {
                 .param("t", Timestamp.from(runStart)).update();
     }
 
-    /** Past the deadline a tender is deleted (public data can always be fetched again, and the studio asked for it). */
+    /**
+     * Past the deadline a tender is deleted (public data can always be fetched again, and the studio asked for it), and
+     * with it the documents kept for it (D-30): rows go by cascade, the files are removed by the library.
+     */
     int purgeExpired() {
-        return jdbc.sql("delete from tender where deadline_at is not null and deadline_at <= :now")
+        int n = jdbc.sql("delete from tender where deadline_at is not null and deadline_at <= :now")
                 .param("now", Timestamp.from(clock.instant())).update();
+        library.purge();
+        return n;
     }
 }

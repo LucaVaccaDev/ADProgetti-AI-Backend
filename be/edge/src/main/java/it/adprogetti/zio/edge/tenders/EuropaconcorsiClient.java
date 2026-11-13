@@ -87,6 +87,15 @@ class EuropaconcorsiClient {
     record Response(int status, String body, String location) {
     }
 
+    /** Hosts the files attached to a tender may come from: the portal's file server and the portal itself (tests). */
+    java.util.Set<String> attachmentHosts() {
+        return java.util.Set.of("assets.europaconcorsi.com", base.getHost());
+    }
+
+    /** One download: the bytes, or why there are none ({@code tooLarge}, or an error code). */
+    record Download(byte[] bytes, boolean tooLarge, String error) {
+    }
+
     /** A logged-in conversation with the portal. */
     final class Session {
         private final HttpClient http;
@@ -108,6 +117,57 @@ class EuropaconcorsiClient {
                         r.status() >= 500);
             }
             return r.body();
+        }
+
+        /** The page of one tender, by its Europaconcorsi id (digits only). */
+        String tenderPage(String id) throws TedUnavailableException {
+            if (!id.matches("[0-9]{1,9}")) {
+                throw new TedUnavailableException("EC_BAD_RESPONSE", false);
+            }
+            Response r = get("/bandi/" + id);
+            if (r.status() / 100 == 3 || EuropaconcorsiParser.isLoginForm(r.body())) {
+                throw new TedUnavailableException("EC_LOGIN_FAILED", false);
+            }
+            if (r.status() != 200) {
+                throw new TedUnavailableException(r.status() == 403 || r.status() == 429 ? "EC_BLOCKED" : "EC_UNAVAILABLE",
+                        r.status() >= 500);
+            }
+            return r.body();
+        }
+
+        /**
+         * Downloads one attached file (https on an allowed host only, no redirects). A file above {@code maxBytes} is
+         * not read: it is reported as too large (by Content-Length, or as soon as the cap is passed).
+         */
+        Download download(String url, long maxBytes) {
+            try {
+                URI uri = URI.create(url);
+                boolean https = "https".equals(uri.getScheme()) || "http".equals(uri.getScheme()) && LOOPBACK.contains(uri.getHost());
+                if (!https || uri.getHost() == null || !attachmentHosts().contains(uri.getHost())) {
+                    return new Download(null, false, "EC_BAD_LINK");
+                }
+                HttpRequest request = HttpRequest.newBuilder(uri).timeout(java.time.Duration.ofMinutes(3)).GET()
+                        .header("User-Agent", "ZioPino-Edge/1").build();
+                HttpResponse<java.io.InputStream> r = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                try (java.io.InputStream in = r.body()) {
+                    if (r.statusCode() != 200) {
+                        return new Download(null, false, r.statusCode() == 403 || r.statusCode() == 429 ? "EC_BLOCKED" : "EC_UNAVAILABLE");
+                    }
+                    long declared = r.headers().firstValueAsLong("Content-Length").orElse(-1);
+                    if (declared > maxBytes) {
+                        return new Download(null, true, null);
+                    }
+                    byte[] data = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE - 8));
+                    return data.length > maxBytes ? new Download(null, true, null) : new Download(data, false, null);
+                }
+            } catch (java.net.http.HttpTimeoutException e) {
+                return new Download(null, false, "EC_TIMEOUT");
+            } catch (IOException | IllegalArgumentException e) {
+                return new Download(null, false, "EC_UNREACHABLE");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return new Download(null, false, "INTERRUPTED");
+            }
         }
 
         private Response get(String path) throws TedUnavailableException {

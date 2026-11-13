@@ -28,6 +28,9 @@ final class EuropaconcorsiParser {
     private static final Pattern TITLE = Pattern.compile(
             "class=\"title\">\\s*<a href=\"(/bandi/[0-9]+-[a-z0-9-]{0,200})\">(.*?)</a>", Pattern.DOTALL);
     private static final Pattern LINK = Pattern.compile("href=\"(https://[^\"\\s]{1,500})\"");
+    private static final Pattern ANCHOR = Pattern.compile("<a\\s([^>]{1,1200})>([^<]{0,120})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HREF = Pattern.compile("href=\"(https://[^\"\\s]{1,500})\"");
+    private static final Pattern ATTACHMENT_HREF = Pattern.compile("href=\"(https?://[^\"\\s]{1,500})\"");
     private static final Pattern PAGE = Pattern.compile("[?&;]page=([0-9]{1,4})");
     private static final Pattern TAGS = Pattern.compile("<[^>]*>");
 
@@ -39,6 +42,39 @@ final class EuropaconcorsiParser {
         String[] blocks = html.split(java.util.regex.Pattern.quote(MARK));
         for (int i = 1; i < blocks.length; i++) {
             card(blocks[i]).ifPresent(out::add);
+        }
+        return out;
+    }
+
+    /** A file attached to a tender page: its label and its address (only on the hosts the caller allows). */
+    record Attachment(String label, String url) {
+    }
+
+    /**
+     * The files attached to a tender page ({@code data-type="attachment"} links), only https and only on {@code hosts}:
+     * the page is untrusted text, so a link to anywhere else is ignored. At most 12, without duplicates.
+     */
+    static List<Attachment> attachments(String html, java.util.Set<String> hosts) {
+        List<Attachment> out = new ArrayList<>();
+        Matcher a = ANCHOR.matcher(html);
+        while (a.find() && out.size() < 12) {
+            String attrs = a.group(1);
+            Matcher href = ATTACHMENT_HREF.matcher(attrs);
+            if (!attrs.contains("data-type=\"attachment\"") || !href.find()) {
+                continue;
+            }
+            String url = HtmlUtils.htmlUnescape(href.group(1));
+            try {
+                URI uri = URI.create(url);
+                boolean secure = "https".equals(uri.getScheme()) || "127.0.0.1".equals(uri.getHost()) || "localhost".equals(uri.getHost());
+                if (secure && uri.getHost() != null && uri.getUserInfo() == null && hosts.contains(uri.getHost())
+                        && out.stream().noneMatch(x -> x.url().equals(url))) {
+                    String label = clean(a.group(2), 100);
+                    out.add(new Attachment(label == null ? "documento" : label, url));
+                }
+            } catch (IllegalArgumentException e) {
+                // a malformed link is simply not used
+            }
         }
         return out;
     }

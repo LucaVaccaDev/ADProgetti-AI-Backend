@@ -27,7 +27,9 @@ class EuropaconcorsiSyncIntegrationTest extends EdgeIntegrationTestBase {
     void clean() throws Exception {
         jdbc.update("delete from tender");
         EC.reset();
-        String page = Files.readString(Path.of("src/test/resources/europaconcorsi/search-page.html"));
+        // the recorded cards expire on 12/11/2026: move them ahead so the clean-up of expired tenders never empties the test
+        String later = java.time.LocalDate.now().plusDays(30).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String page = Files.readString(Path.of("src/test/resources/europaconcorsi/search-page.html")).replace("12/11/2026", later);
         EC.page = path -> path.contains("page=1") ? page : "<html><body></body></html>";
     }
 
