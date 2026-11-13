@@ -31,10 +31,34 @@ public record TendersListProjection(int shard, int shards, int total, List<Sourc
     public record SourceState(String name, String syncedAt, String status, String errorCode, int open) {
     }
 
+    /**
+     * {@code docState} says where the tender's documents stand: {@link #DOCS_AVAILABLE} (kept on the Edge, listed in
+     * {@code docs}), {@link #DOCS_TOO_LARGE} (a file above the cap was found online: upload it by hand) or
+     * {@link #DOCS_TO_UPLOAD} (not fetched: upload it). {@code analysis} is ANALIZZATA, INCOMPLETA or FALLITA once the
+     * requirements were read, or null. The files themselves never travel in a projection (D-03, D-30).
+     */
     public record Tender(String id, String source, String title, String buyer, Double amount, String currency,
-            String deadline, String published, String procedure, List<String> cpv, String place, int lots, String url) {
+            String deadline, String published, String procedure, List<String> cpv, String place, int lots, String url,
+            String docState, List<Doc> docs, String analysis) {
         public Tender {
             cpv = cpv == null ? List.of() : List.copyOf(cpv);
+            docs = docs == null ? List.of() : List.copyOf(docs);
+            docState = docState == null ? DOCS_TO_UPLOAD : docState;
         }
+
+        /** A tender with no information about documents (they are to be uploaded). */
+        public Tender(String id, String source, String title, String buyer, Double amount, String currency,
+                String deadline, String published, String procedure, List<String> cpv, String place, int lots, String url) {
+            this(id, source, title, buyer, amount, currency, deadline, published, procedure, cpv, place, lots, url, null,
+                    null, null);
+        }
+    }
+
+    public static final String DOCS_AVAILABLE = "DISPONIBILE";
+    public static final String DOCS_TOO_LARGE = "TROPPO_GRANDE";
+    public static final String DOCS_TO_UPLOAD = "DA_CARICARE";
+
+    /** One kept document: only what the card needs (never its content). */
+    public record Doc(String id, String name, long size, String origin) {
     }
 }

@@ -121,6 +121,39 @@ class TenderStore {
                         rs.getString("place"), rs.getInt("lots"), rs.getString("source"), rs.getString("url"))).list();
     }
 
+    /** Kept documents of the open tenders, by tender number. */
+    java.util.Map<String, List<it.adprogetti.zio.contracts.payload.TendersListProjection.Doc>> documents() {
+        var out = new java.util.HashMap<String, List<it.adprogetti.zio.contracts.payload.TendersListProjection.Doc>>();
+        jdbc.sql("select notice_number, id, file_name, size_bytes, origin from tender_document order by stored_at, file_name")
+                .query((rs, i) -> {
+                    out.computeIfAbsent(rs.getString(1), k -> new java.util.ArrayList<>())
+                            .add(new it.adprogetti.zio.contracts.payload.TendersListProjection.Doc(rs.getString(2),
+                                    rs.getString(3), rs.getLong(4), rs.getString(5)));
+                    return null;
+                }).list();
+        return out;
+    }
+
+    /** {@code TROPPO_GRANDE} or {@code NON_SCARICABILE} where the last automatic fetch left a mark, by tender number. */
+    java.util.Map<String, String> documentMarks() {
+        var out = new java.util.HashMap<String, String>();
+        jdbc.sql("select notice_number, doc_status from tender where doc_status is not null").query((rs, i) -> {
+            out.put(rs.getString(1), rs.getString(2));
+            return null;
+        }).list();
+        return out;
+    }
+
+    /** Status of the requirements reading (ANALIZZATA, INCOMPLETA, FALLITA), by tender number. */
+    java.util.Map<String, String> analyses() {
+        var out = new java.util.HashMap<String, String>();
+        jdbc.sql("select notice_number, status from tender_analysis").query((rs, i) -> {
+            out.put(rs.getString(1), rs.getString(2));
+            return null;
+        }).list();
+        return out;
+    }
+
     /** Removes the rows of a source that a complete run did not see again. */
     int deleteUnseen(String source, Instant runStart) {
         return jdbc.sql("delete from tender where source = :s and last_seen_at < :t").param("s", source)

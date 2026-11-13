@@ -167,4 +167,32 @@ class TenderDocsFetchTest extends EdgeIntegrationTestBase {
         assertThat(library.store("EC-900107", "b.pdf", "not a pdf at all, long enough to pass the size check ........................................................................".getBytes(), "CARICATO", null)).isEmpty();
         assertThat(library.store("EC-NOPE", "c.pdf", pdf, "CARICATO", null)).isEmpty(); // unknown tender
     }
+
+    @Autowired TendersProjector projector;
+
+    @Test
+    void theProjectionTellsTheCardWhereTheDocumentsStand() throws Exception {
+        tender("EC-900111", "now() + interval '10 days'"); // fetched
+        tender("EC-900112", "now() + interval '11 days'"); // too large
+        tender("EC-900113", "now() + interval '12 days'"); // never fetched
+        EC.files.put("ok.pdf", TestPdfs.text(PAGE1));
+        EC.files.put("big.pdf", TestPdfs.text(PAGE1));
+        EC.announcedSize.put("big.pdf", 150L * 1024 * 1024);
+        EC.tenderPage = path -> path.equals("/bandi/900111") ? page("ok.pdf") : path.equals("/bandi/900112") ? page("big.pdf") : "";
+        jdbc.update("update tender set doc_status = 'NON_SCARICABILE', doc_checked_at = now() where notice_number = 'EC-900113'");
+        fetch.run(() -> { }, "sistema");
+
+        var byId = new java.util.HashMap<String, it.adprogetti.zio.contracts.payload.TendersListProjection.Tender>();
+        projector.build().shards().forEach(sh -> sh.tenders().forEach(t -> byId.put(t.id(), t)));
+
+        assertThat(byId.get("EC-900111").docState()).isEqualTo("DISPONIBILE");
+        assertThat(byId.get("EC-900111").docs()).hasSize(1);
+        assertThat(byId.get("EC-900111").docs().get(0).size()).isPositive();
+        assertThat(byId.get("EC-900111").analysis()).isEqualTo("ANALIZZATA");
+        assertThat(byId.get("EC-900112").docState()).isEqualTo("TROPPO_GRANDE");
+        assertThat(byId.get("EC-900112").docs()).isEmpty();
+        assertThat(byId.get("EC-900113").docState()).isEqualTo("DA_CARICARE");
+        // no path, no content: only names and sizes
+        assertThat(it.adprogetti.zio.contracts.payload.Payloads.write(byId.get("EC-900111"))).doesNotContain("archivio");
+    }
 }

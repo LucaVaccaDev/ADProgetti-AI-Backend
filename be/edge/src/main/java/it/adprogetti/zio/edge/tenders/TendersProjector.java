@@ -66,13 +66,20 @@ class TendersProjector {
 
     Built build() {
         List<TendersListProjection.Tender> items = new ArrayList<>();
+        var documents = store.documents();
+        var marks = store.documentMarks();
+        var analyses = store.analyses();
         for (TenderRow t : store.open(props.projectionLimit())) {
+            var docs = documents.getOrDefault(t.number(), List.of());
+            String docState = !docs.isEmpty() ? TendersListProjection.DOCS_AVAILABLE
+                    : "TROPPO_GRANDE".equals(marks.get(t.number())) ? TendersListProjection.DOCS_TOO_LARGE
+                            : TendersListProjection.DOCS_TO_UPLOAD;
             String url = t.url() != null ? t.url()
                     : TenderStore.SOURCE_TED.equals(t.source()) ? "https://ted.europa.eu/it/notice/-/detail/" + t.number() : null;
             items.add(new TendersListProjection.Tender(t.number(), t.source(), t.title(), t.buyer(),
                     t.amount() == null ? null : t.amount().doubleValue(), t.currency(),
                     t.deadline() == null ? null : t.deadline().toString(), t.published().toString(), t.procedure(), t.cpv(),
-                    t.place(), t.lots(), url));
+                    t.place(), t.lots(), url, docState, docs, analyses.get(t.number())));
         }
         List<TendersListProjection.SourceState> sources = new ArrayList<>();
         int total = 0;
