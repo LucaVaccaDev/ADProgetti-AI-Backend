@@ -12,6 +12,16 @@ Aggiornato l'11/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE
 
 **Lavori a mano:** i lavori `TENDER_DOCS_READ` si lanciano da Amministrazione → Lavori, oppure inserendo una riga nella tabella `job` dell'Edge.
 
+## Ripartenza di lunedì 16/11/2026
+
+**Stato a venerdì 13/11 sera:** commit `21a122c`, build e test verdi (Edge 274, Hub 64, web 136). Due giri di scarico fatti a mano: 120 gare esaminate su 190 aperte di Europaconcorsi, 63 PDF scaricati, 60 gare ANALIZZATA e 2 INCOMPLETA. Restano circa 70 gare di Europaconcorsi da esaminare (il giro automatico delle 07:30 ne fa 60 al giorno) e tutte le gare TED (nessun adattatore). Servizi attivi con il profilo `ssdtest`; FreeLLMAPI va avviato con Node 24 (vedi sotto).
+
+**Da fare, in ordine:**
+1. Trasferimento del file Hub↔Edge: canale dedicato aperto dall'Edge (il canale normale ha il limite di 65.536 caratteri), inoltro in streaming senza salvare sull'Hub, permessi a tutti i ruoli, audit. Poi pulsanti «Disciplinare» (popup + scarico) e «Carica» (anche da 100 MB) nella card.
+2. `tenders.compare` e cerchio di compatibilità. Prima: approvare le referenze (26 da approvare, 3 da verificare), decidere la scadenza di EC-573910 (06/11 nel documento, 12/11 nel database) e se partire con referenze non approvate.
+3. Adattatori: `document-url-lot` di TED, poi PortaleAppalti, InGate, Albo Fornitori (contare prima quante gare ricadono su ciascuna piattaforma); allegati zip (6 gare marcate `NOT_A_PDF`).
+4. Sistemare `scripts/env.sh` (Node 24 davanti a quello di Homebrew) e il permesso di esecuzione di `start-hub.sh`.
+
 ## Disciplinari scaricati in autonomia (13/11/2026, D-30)
 
 **Fatto:** archivio dei documenti fino alla scadenza (`archivio/<gara>/` dentro `BANDI PROVVISORI`), scarico dagli allegati delle schede Europaconcorsi, tetto 100 MB (`TROPPO_GRANDE`), `NON_SCARICABILE` con nuovo tentativo dopo 24 ore, lettura automatica, stato dei documenti nella proiezione e riga «Disciplinare» nella card. Job `TENDER_DOCS_FETCH` (07:30 ogni giorno, e a mano da Amministrazione → Lavori; 60 gare per giro).
