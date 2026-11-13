@@ -12,6 +12,14 @@ Aggiornato l'11/11/2026 (sera). Per riprendere: leggere questo file, poi `CLAUDE
 
 **Lavori a mano:** i lavori `TENDER_DOCS_READ` si lanciano da Amministrazione → Lavori, oppure inserendo una riga nella tabella `job` dell'Edge.
 
+## Disciplinari scaricati in autonomia (13/11/2026, D-30)
+
+**Fatto:** archivio dei documenti fino alla scadenza (`archivio/<gara>/` dentro `BANDI PROVVISORI`), scarico dagli allegati delle schede Europaconcorsi, tetto 100 MB (`TROPPO_GRANDE`), `NON_SCARICABILE` con nuovo tentativo dopo 24 ore, lettura automatica, stato dei documenti nella proiezione e riga «Disciplinare» nella card. Job `TENDER_DOCS_FETCH` (07:30 ogni giorno, e a mano da Amministrazione → Lavori; 60 gare per giro).
+
+**Da fare, in ordine:** (1) trasferimento del file Hub↔Edge e pulsanti «Disciplinare» (popup + scarico) e «Carica» nella card; (2) `tenders.compare` e cerchio di compatibilità; (3) adattatori: link `document-url-lot` di TED e le piattaforme più frequenti (PortaleAppalti, InGate, Albo Fornitori); (4) allegati zip.
+
+**Servizi:** FreeLLMAPI si avvia con **Node 24** davanti nel `PATH` (`export PATH="$HOME/tools/node-v24.22.2-darwin-arm64/bin:$PATH"`): `scripts/env.sh` mette prima il Node di Homebrew (26) e il server non parte (`NODE_MODULE_VERSION`).
+
 ## Capitolato v1.2 (11/11/2026)
 
 Recepito in D-13. **Grafica v1.2 realizzata nel frontend (D-14, commit `86b8e53`, `c536658`, `f3b93fe`, `96ce866`)**: token e Inter, libreria UI, barra laterale trasparente, Panoramica, sezioni, Amministrazione, login. Test: 77 Vitest verdi. Controllata a vista dal committente (Panoramica e barra laterale). Restano: pagine delle schermate 02–10 con i loro moduli (Gare con anello di fattibilità, Segreteria con anteprima protocollo, Calendario, Commesse, BIM, Foto, Chat), rifinitura di Amministrazione secondo la schermata 09, scadenze dalle email (F.4), profilo «produzione-64GB» (F.5).
